@@ -1,4 +1,4 @@
-package com.aspect.salary.service;
+package com.aspect.salary.dao;
 
 import com.aspect.salary.entity.Absence;
 import com.aspect.salary.entity.Employee;
@@ -18,7 +18,7 @@ import java.util.*;
 
 import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 
-public class BitrixDB {
+public class BitrixDAO {
 
     private static final String BITRIX_USER = "salary";
     private static final String BITRIX_PASS = "90g2IiCcaw";
@@ -38,7 +38,7 @@ public class BitrixDB {
         return bitrixDS;
     }
 
-    static List<Absence> getAbsence() {
+    public List<Absence> getAbsenceList() {
 
         LocalDate lastMonthInitial = LocalDate.now().minusMonths(1);
         LocalDate nextMonthInitial = LocalDate.now().plusMonths(1);
@@ -70,6 +70,17 @@ public class BitrixDB {
         }
         return absenceArrayList;
     }
+
+    public List<Employee> getBitrixUserList(){
+        String sql = "SELECT ID,NAME,LAST_NAME FROM `b_user` WHERE ACTIVE = 'Y'";
+
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(getBitrixDataSource());
+        List<Employee> employeeList = new ArrayList<>();
+        jdbcTemplate.query(sql, new EmployeeRowCallbackHandler(employeeList));
+
+        return employeeList;
+    }
+
 
     private static class AbsenceRowCallbackHandler implements RowCallbackHandler {
 
@@ -105,15 +116,7 @@ public class BitrixDB {
         }
     }
 
-    public static List<Employee> getBitrixUserList(){
-        String sql = "SELECT ID,NAME,LAST_NAME FROM `b_user` WHERE ACTIVE = 'Y'";
 
-        JdbcTemplate jdbcTemplate = new JdbcTemplate(getBitrixDataSource());
-        List<Employee> employeeList = new ArrayList<>();
-        jdbcTemplate.query(sql, new EmployeeRowCallbackHandler(employeeList));
-
-        return employeeList;
-    }
 
     private static class EmployeeRowCallbackHandler implements RowCallbackHandler{
         List<Employee> employeeList;

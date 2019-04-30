@@ -15,9 +15,9 @@ public class App {
         //System.out.println(invoice.hashCode());
         //System.out.println(invoice.getSomething());
         //System.out.println(invoice.getCreationDate());
-        //System.out.println(AbsenceHandler.getPayDate(LocalDate.now()));
-        //System.out.println(AbsenceHandler.getPayDate(LocalDate.now().minusMonths(1)));
-        //System.out.println(AbsenceHandler.getPayDate(LocalDate.now().plusMonths(6)));
+        //System.out.println(EmployeeAbsenceHandler.getPayDate(LocalDate.now()));
+        //System.out.println(EmployeeAbsenceHandler.getPayDate(LocalDate.now().minusMonths(1)));
+        //System.out.println(EmployeeAbsenceHandler.getPayDate(LocalDate.now().plusMonths(6)));
 
 
     }

@@ -1,6 +1,5 @@
 package com.aspect.salary.dao;
 
-import com.aspect.salary.service.BitrixDB;
 import com.aspect.salary.entity.Employee;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -11,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Time;
 import java.util.*;
 
 @Repository
@@ -22,8 +22,8 @@ public class EmployeeDAO extends JdbcDaoSupport {
         this.setDataSource(dataSource);
     }
 
-    public Map<Integer, Employee> getEmployeeMap(){
-        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.email, employees.vacation_days_left, rates.salary,rates.official_salary,rates.bonus " +
+    public Map<Integer, Employee> getRawEmployeeMap(){
+        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, rates.salary,rates.official_salary,rates.bonus " +
                 "FROM employees " +
                 "LEFT JOIN rates ON rates.user_id = employees.id " +
                 "WHERE employees.active = 'Y' " +
@@ -37,10 +37,11 @@ public class EmployeeDAO extends JdbcDaoSupport {
     }
 
     public List<Employee> getMissingUsers(){
+        BitrixDAO bitrixDAO = new BitrixDAO();
         List<Employee> bitrixUserList;
         List<Employee> missingUserList = new ArrayList<>();
-        Map<Integer, Employee> employeeMap = getEmployeeMap();
-        bitrixUserList = BitrixDB.getBitrixUserList();
+        Map<Integer, Employee> employeeMap = getRawEmployeeMap();
+        bitrixUserList = bitrixDAO.getBitrixUserList();
 
         if(bitrixUserList == null || employeeMap == null) return null;
 
@@ -56,7 +57,7 @@ public class EmployeeDAO extends JdbcDaoSupport {
     }
 
     private static boolean idNotForbidden(int id){
-        for (int identifier : BitrixDB.FORBIDDEN_USER_ID){
+        for (int identifier : BitrixDAO.FORBIDDEN_USER_ID){
             if (id == identifier) return false;
         }
         return true;
@@ -86,8 +87,27 @@ public class EmployeeDAO extends JdbcDaoSupport {
             String surname = rs.getString("surname");
             String xtrfName = rs.getString("xtrf_Name");
             int vacationDaysLeft = rs.getInt("vacation_days_left");
+            Time workingDayStart = rs.getTime("working_day_start");
+            Time workingDayEnd = rs.getTime("working_day_end");
+            Time lunchStart = rs.getTime("lunch_start");
+            Time lunchEnd = rs.getTime("lunch_end");
 
-            return new Employee(id, bitrixUserId, salary, officialSalary, bonus, email, name, surname, xtrfName, vacationDaysLeft);
+            return new Employee(
+                    id,
+                    bitrixUserId,
+                    salary,
+                    officialSalary,
+                    bonus,
+                    email,
+                    name,
+                    surname,
+                    xtrfName,
+                    vacationDaysLeft,
+                    workingDayStart,
+                    workingDayEnd,
+                    lunchStart,
+                    lunchEnd
+            );
         }
     }
 }

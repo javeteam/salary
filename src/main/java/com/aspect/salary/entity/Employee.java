@@ -1,12 +1,11 @@
 package com.aspect.salary.entity;
 
+import java.sql.Time;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class Employee {
-
-    private final LocalTime WORKING_DAY_START = LocalTime.of(9,0);
 
     private int id;
     private int bitrixUserId;
@@ -18,6 +17,11 @@ public class Employee {
     private String surname;
     private String xtrfName;
     private int vacationDaysLeft;
+    private LocalTime workingDayStart;
+    private LocalTime lunchStart;
+    private LocalTime lunchEnd;
+    private LocalTime workingDayEnd;
+
     private List<Absence> absences = new ArrayList<>();
     private List<List<Absence>> intersectionsList = new ArrayList<>();
 
@@ -25,7 +29,7 @@ public class Employee {
     private float overtimeHourPrise;
 
 
-    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, int vacationDaysLeft) {
+    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, int vacationDaysLeft, Time workingDayStart, Time workingDayEnd, Time lunchStart, Time lunchEnd) {
         this.id = id;
         this.bitrixUserId = bitrixUserId;
         this.salary = salary;
@@ -36,6 +40,11 @@ public class Employee {
         this.surname = surname;
         this.xtrfName = xtrfName;
         this.vacationDaysLeft = vacationDaysLeft;
+        this.workingDayStart = workingDayStart.toLocalTime();
+        this.workingDayEnd = workingDayEnd.toLocalTime();
+        this.lunchStart = lunchStart.toLocalTime();
+        this.lunchEnd = lunchEnd.toLocalTime();
+
     }
 
     public Employee(int id, String name, String surname){
@@ -92,7 +101,20 @@ public class Employee {
     public void setIntersectionsList(List<List<Absence>> intersectionsList) {
         this.intersectionsList = intersectionsList;
     }
-    public LocalTime getWorkingDayStart(){
-        return WORKING_DAY_START;
+
+    public LocalTime getWorkingDayStart() {
+        return workingDayStart;
+    }
+
+    public LocalTime getLunchStart() {
+        return lunchStart;
+    }
+
+    public LocalTime getLunchEnd() {
+        return lunchEnd;
+    }
+
+    public LocalTime getWorkingDayEnd() {
+        return workingDayEnd;
     }
 }

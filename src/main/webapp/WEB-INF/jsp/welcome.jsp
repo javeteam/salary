@@ -19,7 +19,9 @@
               Платежі
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="/new_payment">Новий платіж</a>
+              <c:if test="${not paymentExist}">
+                <a class="dropdown-item" href="/new_payment">Новий платіж</a>
+              </c:if>
               <a class="dropdown-item" href="/payments_list">Платежі</a>
             </div>
           </li>

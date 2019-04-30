@@ -27,6 +27,7 @@ public class Invoice {
 
     public Invoice(){
         this.creationDate = LocalDateTime.now();
+        this.modificationDate = LocalDateTime.now();
         this.confirmed = false;
     }
 

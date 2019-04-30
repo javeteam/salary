@@ -1,8 +1,10 @@
-package com.aspect.salary.service;
+package com.aspect.salary.utils;
 
+import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.entity.Absence;
 import com.aspect.salary.entity.Employee;
-import com.aspect.salary.utils.Digits;
+import com.aspect.salary.utils.CommonUtils;
+import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -16,7 +18,7 @@ import java.util.List;
 import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 
-public class AbsenceHandler {
+public class EmployeeAbsenceHandler {
 
     private List<Absence> absencesList;
     private List<List<Absence>> intersectionsList;
@@ -25,20 +27,20 @@ public class AbsenceHandler {
     private static LocalDateTime lastMonthFirstDayDT = lastMonthInitial.with(firstDayOfMonth()).atTime(LocalTime.MIN);
     private static LocalDateTime lastMonthLastDayDT = lastMonthInitial.with(lastDayOfMonth()).atTime(LocalTime.MAX);
 
-    private LocalTime workingDayStart = LocalTime.of(9,0);
-    private LocalTime lunchStart = LocalTime.of(13,0);
-    private LocalTime lunchEnd = LocalTime.of(14,0);
-    private LocalTime workingDayEnd = LocalTime.of(18,0);
+    private LocalTime workingDayStart;
+    private LocalTime lunchStart;
+    private LocalTime lunchEnd;
+    private LocalTime workingDayEnd;
 
-    public AbsenceHandler(List<Absence> absencesList){
-        if(absencesList == null) throw new IllegalArgumentException("Null id not valid argument");
-        this.absencesList = absencesList;
-    }
 
-    public AbsenceHandler(Employee employee){
+    public EmployeeAbsenceHandler(Employee employee){
         if(employee == null) throw new IllegalArgumentException("Null id not valid argument");
         this.absencesList = employee.getAbsences();
         this.intersectionsList = employee.getIntersectionsList();
+        this.workingDayStart = employee.getWorkingDayStart();
+        this.workingDayEnd = employee.getWorkingDayEnd();
+        this.lunchStart = employee.getLunchStart();
+        this.lunchEnd = employee.getLunchEnd();
     }
 
     public List<List<Absence>> getIntersectionsList(){
@@ -52,9 +54,11 @@ public class AbsenceHandler {
     private static boolean isAbsenceVacation(Absence absence){
         return absence.getAbsenceType().equals("VACATION");
     }
+
     private static boolean isAbsenceOvertime(Absence absence){
         return absence.getAbsenceType().equals("OVERTIME");
     }
+
     private static boolean isAbsenceUnpaidLeave(Absence absence){
         return absence.getAbsenceType().equals("LEAVEUNPAYED");
     }
@@ -83,11 +87,11 @@ public class AbsenceHandler {
     }
 
     public static LocalDate getPayDate(LocalDate month){
-        int dayOfWeek = month.withDayOfMonth(BitrixDB.PAYDAY).getDayOfWeek().getValue();
+        int dayOfWeek = month.withDayOfMonth(BitrixDAO.PAYDAY).getDayOfWeek().getValue();
         int payDay;
 
-        if (dayOfWeek > 5) payDay = BitrixDB.PAYDAY - (dayOfWeek - 5);
-        else payDay = BitrixDB.PAYDAY;
+        if (dayOfWeek > 5) payDay = BitrixDAO.PAYDAY - (dayOfWeek - 5);
+        else payDay = BitrixDAO.PAYDAY;
 
         return month.withDayOfMonth(payDay);
     }
@@ -280,13 +284,13 @@ public class AbsenceHandler {
                     }
                     break;
                 case "OVERTIME":
-                    float durationValue = Digits.round(durationInHours,2);
+                    float durationValue = CommonUtils.round(durationInHours,2);
                     absence.setDurationHours(durationValue);
                     absence.setWeight(Absence.Weight.POSITIVE);
                     break;
                 case "LEAVEUNPAYED":
                     float lunchIntersectionTime = getDurationOfIntersection(absence.getDateFrom().toLocalTime(), absence.getDateTo().toLocalTime(),lunchStart,lunchEnd);
-                    durationValue = Digits.round((durationInHours - lunchIntersectionTime),2);
+                    durationValue = CommonUtils.round((durationInHours - lunchIntersectionTime),2);
                     absence.setDurationHours(durationValue);
                     absence.setWeight(Absence.Weight.NEGATIVE);
                     break;
@@ -364,13 +368,6 @@ public class AbsenceHandler {
 
         if (len > 0) return len / 3600;
         else return 0;
-    }
-
-    public void setWorkingDayStart(LocalTime dayStart){
-        this.workingDayStart = dayStart;
-        this.workingDayEnd = workingDayStart.plusHours(9);
-        this.lunchStart = workingDayStart.plusHours(4);
-        this.lunchEnd = lunchStart.plusHours(1);
     }
 
 }
