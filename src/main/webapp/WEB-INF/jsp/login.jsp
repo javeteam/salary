@@ -25,12 +25,14 @@
             <button class="btn btn-primary" type="submit">Авторизуватися</button>
         </form>
 
+
     </body>
 </html>
 
 <style type="text/css">
-.custom-centered{
- margin:0 auto;
- width:300px;
-}
+    .custom-centered{
+        margin:0 auto;
+        width:300px;
+    }
 </style>
+

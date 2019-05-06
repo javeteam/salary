@@ -2,10 +2,7 @@ package com.aspect.salary.service;
 
 import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.dao.EmployeeDAO;
-import com.aspect.salary.entity.Absence;
-import com.aspect.salary.entity.Employee;
-import com.aspect.salary.entity.Invoice;
-import com.aspect.salary.entity.Payment;
+import com.aspect.salary.entity.*;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -13,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 @Service
 public class EmployeeService {
@@ -21,29 +17,12 @@ public class EmployeeService {
     @Autowired
     private EmployeeDAO employeeDAO;
 
-    private BitrixDAO bitrixDAO = new BitrixDAO();
 
-/*
-    public Payment preparePayment(Map<Integer,Employee> employees){
-
-        Set<Integer> keys = employees.keySet();
-        Payment payment = new Payment();
-
-        for (Integer key : keys){
-            Employee employee = employees.get(key);
-            Invoice invoice = new Invoice(employee);
-            payment.addInvoice(invoice);
-        }
-
-        return payment;
-    }
-*/
-    public List<Employee> getEmployeeList() {
+    public List<Employee> getEmployeeList(List<Absence> bitrixAbsenceList,  List<CSVAbsence> csvAbsenceList) {
         Map<Integer, Employee>  employeeMap = this.employeeDAO.getRawEmployeeMap();
-        List<Absence> allAbsences = bitrixDAO.getAbsenceList();
 
-        //Puts all absences into Employee objects which they connected with
-        for (Absence absence: allAbsences){
+        //Puts all Bitrix absences into Employee objects which they connected with
+        for (Absence absence: bitrixAbsenceList){
             int bitrixUserId = absence.getBitrixUserId();
             if(employeeMap.containsKey(bitrixUserId)){
                 Employee employee = employeeMap.get(bitrixUserId);
@@ -56,6 +35,7 @@ public class EmployeeService {
         // Handle absences for each Employee
         for(Employee employee : employeeList){
             handleEmployeeAbsences(employee);
+            addCSVAbsencesToEmployee(employee, csvAbsenceList);
         }
         return employeeList;
     }
@@ -77,6 +57,15 @@ public class EmployeeService {
         handler.shrinkUnpaidLeavesToWorkingHours();
         handler.checkForIntersection();
         handler.prepareInvoiceData();
+    }
+
+    private static void addCSVAbsencesToEmployee (Employee employee, List<CSVAbsence> csvAbsenceList){
+        String xtrfUsername = employee.getXtrfName();
+        for(CSVAbsence csvAbsence : csvAbsenceList) {
+            if (csvAbsence.getEmployeeXtrfName().equals(xtrfUsername)) {
+                employee.addCSVAbsence(csvAbsence);
+            }
+        }
     }
 
 

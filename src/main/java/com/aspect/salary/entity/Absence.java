@@ -42,6 +42,11 @@ public class Absence {
         this.absenceType = absenceType;
     }
 
+    public Absence (String absenceType, float durationHours, Weight weight){
+        this.absenceType = absenceType;
+        this.durationHours = durationHours;
+        this.weight = weight;
+    }
 
     public void setBitrixUserId(int bitrixUserId) {
         this.bitrixUserId = bitrixUserId;
@@ -64,13 +69,15 @@ public class Absence {
     }
 
     public String getDatesAsString() {
-        if (absenceType.equals("LEAVESICK") || absenceType.equals("VACATION")) {
+        if(dateFrom == null || dateTo == null) return "-";
+        else if (absenceType.equals("LEAVESICK") || absenceType.equals("VACATION")) {
             return dateFormatter.format(dateFrom) + " - " + dateFormatter.format(dateTo);
         } else return dateTimeFormatter.format(dateFrom) + " - " + timeFormatter.format(dateTo);
     }
 
     public String getAbsenceType() {
-        return this.absenceType;
+        if (this.absenceType == null) return "NONE";
+        else return this.absenceType;
     }
 
     public int getBitrixUserId() {

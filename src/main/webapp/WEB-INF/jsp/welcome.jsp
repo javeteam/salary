@@ -20,9 +20,9 @@
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
               <c:if test="${not paymentExist}">
-                <a class="dropdown-item" href="/new_payment">Новий платіж</a>
+                <a class="dropdown-item" href="/createPayment">Новий платіж</a>
               </c:if>
-              <a class="dropdown-item" href="/payments_list">Платежі</a>
+              <a class="dropdown-item" href="/paymentList">Платежі</a>
             </div>
           </li>
           <li class="nav-item dropdown">
@@ -30,8 +30,8 @@
               Працівники
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="#">Додати працівника</a>
-              <a class="dropdown-item" href="#">Керування працівниками</a>
+              <a class="dropdown-item" href="/addEmployee">Додати працівника</a>
+              <a class="dropdown-item" href="/employeeList">Керування працівниками</a>
             </div>
           </li>
 

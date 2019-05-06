@@ -49,9 +49,10 @@
         <div class="alert alert-warning" role="alert">
             <strong>Увага!</strong> Користувач ${missingEmployee} відсутній чи не активний.
         </div>
-    <div class="document">
     </c:forEach>
     </c:if>
+
+    <div class="document">
     <c:if test="${not empty invoices}">
     <c:forEach  items="${invoices}" var ="invoice">
     <table class="table">
@@ -155,7 +156,7 @@
         <tr class="table-light">
           <td><b>Тип</b></td>
           <td><b>Період</b></td>
-          <td><b>Тривалість, днів</b></td>
+          <td><b>Тривалість, годин</b></td>
           <td><b>Вартість, грн</b></td>
         </tr>
         <c:forEach  items="${invoice.getUnpaidLeave()}" var ="unpaidLeave">
@@ -192,10 +193,23 @@
     <hr/>
     </c:forEach>
     </c:if>
+    <c:if test="${isDataValid}">
     <form action="new_payment/save" class="custom-centered">
          <button class="btn btn-primary" type="submit">Створити платіж</button>
     </form>
+    </c:if>
     </div>
+
+    <script type="text/javascript">
+      function hideById(id) {
+          var x = document.getElementById(id);
+          if (x.style.display === "none") {
+              x.style.display = "block";
+          } else {
+              x.style.display = "none";
+          }
+      }
+    </script>
     </body>
 </html>
 

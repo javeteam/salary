@@ -1,6 +1,5 @@
 package com.aspect.salary.entity;
 
-import java.sql.Time;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,13 +22,11 @@ public class Employee {
     private LocalTime workingDayEnd;
 
     private List<Absence> absences = new ArrayList<>();
+    private List<CSVAbsence> csvAbsences = new ArrayList<>();
     private List<List<Absence>> intersectionsList = new ArrayList<>();
 
-    private float freelanceHourPrise;
-    private float overtimeHourPrise;
 
-
-    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, int vacationDaysLeft, Time workingDayStart, Time workingDayEnd, Time lunchStart, Time lunchEnd) {
+    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, int vacationDaysLeft, LocalTime workingDayStart, LocalTime workingDayEnd, LocalTime lunchStart, LocalTime lunchEnd) {
         this.id = id;
         this.bitrixUserId = bitrixUserId;
         this.salary = salary;
@@ -40,10 +37,10 @@ public class Employee {
         this.surname = surname;
         this.xtrfName = xtrfName;
         this.vacationDaysLeft = vacationDaysLeft;
-        this.workingDayStart = workingDayStart.toLocalTime();
-        this.workingDayEnd = workingDayEnd.toLocalTime();
-        this.lunchStart = lunchStart.toLocalTime();
-        this.lunchEnd = lunchEnd.toLocalTime();
+        this.workingDayStart = workingDayStart;
+        this.workingDayEnd = workingDayEnd;
+        this.lunchStart = lunchStart;
+        this.lunchEnd = lunchEnd;
 
     }
 
@@ -65,7 +62,6 @@ public class Employee {
         return absences.size();
     }
 
-
     public String getName(){
         return name;
     }
@@ -76,6 +72,10 @@ public class Employee {
 
     public int getBitrixUserId() {
         return bitrixUserId;
+    }
+
+    public String getXtrfName() {
+        return xtrfName;
     }
 
     public int getId() {
@@ -116,5 +116,13 @@ public class Employee {
 
     public LocalTime getWorkingDayEnd() {
         return workingDayEnd;
+    }
+
+    public List<CSVAbsence> getCSVAbsences() {
+        return csvAbsences;
+    }
+
+    public void addCSVAbsence(CSVAbsence csvAbsences) {
+        if(csvAbsences != null) this.csvAbsences.add(csvAbsences);
     }
 }

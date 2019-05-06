@@ -1,9 +1,12 @@
 package com.aspect.salary.entity;
 
+import com.aspect.salary.utils.CommonUtils;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 public class Invoice {
 
@@ -18,11 +21,13 @@ public class Invoice {
     private float salary;
     private float officialSalary;
     private float bonus;
+    private String uuid;
     private List<List<Absence>> absenceIntersection;
     private List<Absence> vacation = new ArrayList<>();
     private List<Absence> overtime = new ArrayList<>();
     private List<Absence> unpaidLeave = new ArrayList<>();
     private List<Absence> sickLeave = new ArrayList<>();
+    private List<Absence> freelance = new ArrayList<>();
 
 
     public Invoice(){
@@ -40,7 +45,10 @@ public class Invoice {
         this.absenceIntersection = employee.getIntersectionsList();
         this.username = employee.getName() + " " + employee.getSurname();
 
+        this.uuid  = UUID.randomUUID().toString();
+
         List<Absence> absenceList = employee.getAbsences();
+        List<CSVAbsence> csvAbsenceList = employee.getCSVAbsences();
 
         if(absenceList.size() != 0){
             for (Absence absence : absenceList){
@@ -57,6 +65,22 @@ public class Invoice {
                     case ("LEAVEUNPAYED"):
                         unpaidLeave.add(absence);
                         break;
+                }
+            }
+        }
+
+        if(csvAbsenceList.size() != 0){
+            for(CSVAbsence csvAbsence : csvAbsenceList){
+                float durationHours = 0;
+
+                if(csvAbsence.getAbsenceType().equals("OVERTIME")) {
+                    durationHours = (float)csvAbsence.getPrise() / this.getOvertimeHourPrise();
+                    durationHours = CommonUtils.round(durationHours,2);
+                    overtime.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Absence.Weight.POSITIVE ));
+                } else if(csvAbsence.getAbsenceType().equals("FREELANCE")){
+                    durationHours = (float) csvAbsence.getPrise() / this.getFreelanceHourPrise();
+                    durationHours = CommonUtils.round(durationHours,2);
+                    freelance.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Absence.Weight.POSITIVE ));
                 }
             }
         }
@@ -143,6 +167,10 @@ public class Invoice {
 
     public int getBonus() {
         return Math.round(bonus);
+    }
+
+    public String getUuid() {
+        return uuid;
     }
 
     public float getAbsenceGroupDuration (List<Absence> absenceList){

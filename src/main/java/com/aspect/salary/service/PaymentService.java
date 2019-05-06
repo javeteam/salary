@@ -1,9 +1,8 @@
 package com.aspect.salary.service;
 
+import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.dao.PaymentDAO;
-import com.aspect.salary.entity.Employee;
-import com.aspect.salary.entity.Invoice;
-import com.aspect.salary.entity.Payment;
+import com.aspect.salary.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,10 +22,14 @@ public class PaymentService {
     @Autowired
     private EmployeeService employeeService;
 
+    private BitrixDAO bitrixDAO = new BitrixDAO();
 
-    public Payment createPayment(){
+
+    public Payment createPayment(Session session){
         Payment payment = new Payment();
-        List<Employee> employeeList = this.employeeService.getEmployeeList();
+        List<Absence> bitrixAbsenceList = bitrixDAO.getAbsenceList();
+        List<CSVAbsence> csvAbsenceList = session.getCsvAbsenceList();
+        List<Employee> employeeList = this.employeeService.getEmployeeList(bitrixAbsenceList,csvAbsenceList);
 
         for(Employee employee : employeeList){
             Invoice invoice = new Invoice(employee);
@@ -54,5 +57,17 @@ public class PaymentService {
             paymentTotalAmount += invoice.getTotalAmount();
         }
         payment.setTotalAmount(paymentTotalAmount);
+    }
+
+    public boolean isDataValid(Payment payment){
+        List<Invoice> invoices = payment.getInvoices();
+        for (Invoice invoice : invoices){
+            if (invoice.getAbsenceIntersection().size() > 0) return false;
+        }
+        return true;
+    }
+
+    public List<Payment> getPayments(){
+        return this.paymentDAO.getAllPayments();
     }
 }

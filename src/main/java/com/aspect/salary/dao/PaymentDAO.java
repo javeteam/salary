@@ -77,6 +77,13 @@ public class PaymentDAO extends JdbcDaoSupport {
         }
     }
 
+    public List<Payment> getAllPayments(){
+        String sql = "SELECT id,date,complete,total_amount FROM `payments`";
+        List<Payment> paymentList = new ArrayList<>();
+        this.getJdbcTemplate().query(sql, new PaymentDAO.MyRowCallbackHandler(paymentList));
+        return paymentList;
+    }
+
     private static class MyRowCallbackHandler implements RowCallbackHandler{
         List<Payment> paymentList;
         public MyRowCallbackHandler(List<Payment> paymentList){

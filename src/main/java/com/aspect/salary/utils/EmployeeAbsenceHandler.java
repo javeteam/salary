@@ -3,8 +3,6 @@ package com.aspect.salary.utils;
 import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.entity.Absence;
 import com.aspect.salary.entity.Employee;
-import com.aspect.salary.utils.CommonUtils;
-import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -196,7 +194,7 @@ public class EmployeeAbsenceHandler {
                     if(dateFrom.toLocalTime().isBefore(workingDayStart)) {
                         absence.setDateFrom(dateFrom.toLocalDate().atTime(workingDayStart));
                     }
-                    if(dateTo.toLocalTime().isAfter(workingDayEnd)){
+                    if(dateTo.toLocalTime().isAfter(workingDayEnd) || dateTo.toLocalTime() == LocalTime.MIN){
                         absence.setDateTo(dateTo.toLocalDate().atTime(workingDayEnd));
                     }
                 } else it.remove();
@@ -340,15 +338,11 @@ public class EmployeeAbsenceHandler {
             LocalDateTime newTo = absence.getDateTo();
             LocalDateTime creationDate = absence.getCreationDate();
             absence.setDateTo(to);
-            Absence newAbsence = new Absence(newFrom, newTo, creationDate, absence.getBitrixUserId(), absence.getAbsenceType() + "_1");
+            Absence newAbsence = new Absence(newFrom, newTo, creationDate, absence.getBitrixUserId(), absence.getAbsenceType());
             list.add(absence);
-            if(isAbsenceDurationNotNull(newAbsence)) list.addAll(split(newAbsence));
+            list.addAll(split(newAbsence));
+
             return list;
-        }
-    }
-    public void getValues () {
-        for (Absence absence : absencesList) {
-            System.out.println(absence.getDateFrom() + " -- " + absence.getDateTo() + " " + absence.getAbsenceType());
         }
     }
 

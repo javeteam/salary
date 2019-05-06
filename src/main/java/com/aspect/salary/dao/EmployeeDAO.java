@@ -11,6 +11,7 @@ import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Time;
+import java.time.LocalTime;
 import java.util.*;
 
 @Repository
@@ -87,10 +88,10 @@ public class EmployeeDAO extends JdbcDaoSupport {
             String surname = rs.getString("surname");
             String xtrfName = rs.getString("xtrf_Name");
             int vacationDaysLeft = rs.getInt("vacation_days_left");
-            Time workingDayStart = rs.getTime("working_day_start");
-            Time workingDayEnd = rs.getTime("working_day_end");
-            Time lunchStart = rs.getTime("lunch_start");
-            Time lunchEnd = rs.getTime("lunch_end");
+            LocalTime workingDayStart = rs.getObject("working_day_start", LocalTime.class);
+            LocalTime workingDayEnd = rs.getObject("working_day_end", LocalTime.class);
+            LocalTime lunchStart = rs.getObject("lunch_start", LocalTime.class);
+            LocalTime lunchEnd = rs.getObject("lunch_end", LocalTime.class);
 
             return new Employee(
                     id,
