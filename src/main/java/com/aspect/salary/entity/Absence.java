@@ -1,5 +1,6 @@
 package com.aspect.salary.entity;
 
+import com.aspect.salary.utils.CommonUtils.*;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.LocalDateTime;
@@ -13,6 +14,7 @@ public class Absence {
     private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy (HH:mm");
     private DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm)");
 
+    private Integer id;
     private LocalDateTime creationDate;
     private LocalDateTime dateFrom;
     private LocalDateTime dateTo;
@@ -22,19 +24,13 @@ public class Absence {
     private int durationDays = 0;
     private Weight weight = Weight.NEUTRAL;
 
-    public enum Weight {
-        POSITIVE,
-        NEUTRAL,
-        NEGATIVE
+    public Absence(java.sql.Timestamp from, java.sql.Timestamp to, java.sql.Timestamp creationDate) {
+        this.dateFrom = (from == null ? null : from.toLocalDateTime());
+        this.dateTo = (to == null ? null : to.toLocalDateTime());
+        this.creationDate = (creationDate == null ? null : creationDate.toLocalDateTime());
     }
 
-    public Absence(@NotNull java.sql.Timestamp from, @NotNull java.sql.Timestamp to, @NotNull java.sql.Timestamp creationDate) {
-        this.dateFrom = from.toLocalDateTime();
-        this.dateTo = to.toLocalDateTime();
-        this.creationDate = creationDate.toLocalDateTime();
-    }
-
-    public Absence(@NotNull LocalDateTime from, @NotNull LocalDateTime to, @NotNull LocalDateTime creationDate, int bitrixUserId, String absenceType) {
+    public Absence(LocalDateTime from, LocalDateTime to, LocalDateTime creationDate, int bitrixUserId, String absenceType) {
         this.dateFrom = from;
         this.dateTo = to;
         this.creationDate = creationDate;
@@ -58,6 +54,14 @@ public class Absence {
             dateFrom = dateFrom.toLocalDate().atTime(LocalTime.MIN);
             dateTo = dateTo.toLocalDate().atTime(LocalTime.MAX);
         }
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public LocalDateTime getDateFrom() {
@@ -106,6 +110,14 @@ public class Absence {
 
     public void setDurationHours(float durationHours) {
         this.durationHours = durationHours;
+    }
+
+    public float getDurationHours() {
+        return durationHours;
+    }
+
+    public int getDurationDays() {
+        return durationDays;
     }
 
     public Weight getWeight() {

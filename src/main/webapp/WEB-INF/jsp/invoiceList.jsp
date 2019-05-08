@@ -60,33 +60,32 @@
 </c:if>
 
 <div class="document">
-    <c:if test="${not empty paymentList}">
+    <c:if test="${not empty invoiceList}">
         <table class="table-sm table-striped table-dark" style="width:100%;" id="itemList">
             <thead>
             <tr>
                 <th>#</th>
-                <th>Дата створення</th>
+                <th>П.І.Б</th>
                 <th>Статус</th>
                 <th>Сума</th>
             </tr>
             </thead>
-        <c:forEach  items="${paymentList}" var ="payment" varStatus="loop">
+
             <tbody>
-            <tr title="Редагувати платіж" class="clickable-row" data-href="/payment?id=${payment.getId()}">
-                <td>${loop.index + 1}</td>
-                <td>
-                    <c:if test="${invoice.getAbsenceIntersection().size() > 0 }">
-                        <span class="fas fa-exclamation-triangle" style="color: orange;"></span>
-                    </c:if>
-                    ${payment.getCreationDate()}
-                </td>
-                <td>${payment.isComplete() ? "Оплачено" : "В роботі"}</td>
-                <td>${payment.getFormattedTotalAmount()} грн</td>
-            </tr>
-
-                </tbody>
-
-        </c:forEach>
+            <c:forEach  items="${invoiceList}" var ="invoice" varStatus="loop">
+                <tr title="Редагувати платіж" class="clickable-row" data-href="/invoice?id=${invoice.getId()}">
+                    <td>${loop.index + 1}</td>
+                    <td>
+                        <c:if test="${invoice.getAbsenceIntersection().size() > 0 }">
+                            <span class="fas fa-exclamation-triangle" style="color: orange;"></span>
+                        </c:if>
+                        ${invoice.getUsername()}
+                    </td>
+                    <td>${payment.isConfirmed() ? "Підтверджено" : "Не підтверджено"}</td>
+                    <td>${invoice.getFormattedCurrency(invoice.getTotalAmount())} грн</td>
+                </tr>
+            </c:forEach>
+            </tbody>
         </table>
     </c:if>
 </div>

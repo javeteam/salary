@@ -90,7 +90,7 @@ public class CSVAbsenceService {
         if(matcher.find()){
             String floatString = matcher.group();
             float value = Float.parseFloat(floatString);
-            return Math.round(value);
+            return Math.roundValue(value);
         } else return 0;
     }
     */

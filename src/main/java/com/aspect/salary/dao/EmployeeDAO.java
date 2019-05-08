@@ -1,6 +1,7 @@
 package com.aspect.salary.dao;
 
 import com.aspect.salary.entity.Employee;
+import com.aspect.salary.utils.CommonUtils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowCallbackHandler;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
@@ -10,7 +11,6 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Time;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -24,7 +24,7 @@ public class EmployeeDAO extends JdbcDaoSupport {
     }
 
     public Map<Integer, Employee> getRawEmployeeMap(){
-        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, rates.salary,rates.official_salary,rates.bonus " +
+        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, rates.salary,rates.official_salary,rates.bonus " +
                 "FROM employees " +
                 "LEFT JOIN rates ON rates.user_id = employees.id " +
                 "WHERE employees.active = 'Y' " +
@@ -87,6 +87,7 @@ public class EmployeeDAO extends JdbcDaoSupport {
             String name = rs.getString("name");
             String surname = rs.getString("surname");
             String xtrfName = rs.getString("xtrf_Name");
+            Position position = Position.valueOf(rs.getString("position"));
             int vacationDaysLeft = rs.getInt("vacation_days_left");
             LocalTime workingDayStart = rs.getObject("working_day_start", LocalTime.class);
             LocalTime workingDayEnd = rs.getObject("working_day_end", LocalTime.class);
@@ -103,6 +104,7 @@ public class EmployeeDAO extends JdbcDaoSupport {
                     name,
                     surname,
                     xtrfName,
+                    position,
                     vacationDaysLeft,
                     workingDayStart,
                     workingDayEnd,

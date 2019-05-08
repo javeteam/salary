@@ -3,11 +3,13 @@ package com.aspect.salary.controllers;
 import com.aspect.salary.entity.Payment;
 import com.aspect.salary.entity.Session;
 import com.aspect.salary.service.CSVAbsenceService;
+import com.aspect.salary.service.InvoiceService;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.List;
 
 
@@ -30,12 +32,16 @@ public class MainController {
     private boolean paymentExist;
     private List <String> missingEmployees;
     private Session session;
+    private String paymentDate;
 
     @Autowired
     private EmployeeService employeeService;
 
     @Autowired
     private PaymentService paymentService;
+
+    @Autowired
+    private InvoiceService invoiceService;
 
     @RequestMapping(value = {"/welcome"}, method = RequestMethod.GET)
     public String welcome(Model model) {
@@ -110,51 +116,80 @@ public class MainController {
         payment = this.paymentService.createPayment(session);
 
         List<Invoice> invoiceList = payment.getInvoices();
+        invoiceList.sort(Comparator.comparing(Invoice::getUsername));
         paymentExist = paymentService.isPaymentForThisMonthExist();
         boolean isDataValid = paymentService.isDataValid(payment);
+        paymentService.calculateTotalAmount(payment);
+        String totalAmount = payment.getFormattedTotalAmount();
+        String paidPeriod = payment.getPaidPeriod();
 
-        String paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
 
         model.addAttribute("missingEmployees", missingEmployees);
         model.addAttribute("isDataValid", isDataValid);
         model.addAttribute("invoices", invoiceList);
         model.addAttribute("paymentDate", paymentDate);
+        model.addAttribute("paidPeriod", paidPeriod);
         model.addAttribute("paymentExist", paymentExist);
+        model.addAttribute("totalAmount", totalAmount);
 
 
-        return "test";
+        return "payment";
     }
 
 
     @RequestMapping(value = "/uploadFiles", method = RequestMethod.POST)
-    public String submit(@RequestParam("CSVFiles") MultipartFile[] files,HttpServletResponse httpResponse ) throws IOException {
+    public String submit(@RequestParam("CSVFiles") MultipartFile[] files, HttpServletResponse httpResponse ) throws IOException {
         for (MultipartFile file: files) {
             if (!file.isEmpty()){
                 session.addCSVAbsence(CSVAbsenceService.fileToCSVAbsenceList(file));
             }
         }
         session.setCsvUploaded(true);
-        httpResponse.sendRedirect("/create_payment");
+        httpResponse.sendRedirect("/createPayment");
         return null;
     }
 
 
-    @RequestMapping(value = { "/new_payment/save" }, method = RequestMethod.POST)
-    public String savePayment(Model model) {
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-        paymentService.calculateTotalAmount(payment);
+    @RequestMapping(value = { "/paymentSave" }, method = RequestMethod.POST)
+    public String savePayment(Model model, HttpServletResponse httpResponse) throws IOException {
         paymentService.savePaymentToDB(payment);
-
-        model.addAttribute("paymentExist", paymentExist);
-        return "welcome";
+        httpResponse.sendRedirect("/paymentList");
+        return null;
     }
 
     @RequestMapping(value = { "/paymentList" })
     public String getPaymentList(Model model) {
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-        List<Payment> paymentList = paymentService.getPayments();
+        paymentExist = this.paymentService.isPaymentForThisMonthExist();
+        List<Payment> paymentList = this.paymentService.getAllPayments();
 
         model.addAttribute("paymentList", paymentList);
+        model.addAttribute("paymentExist", paymentExist);
+
         return "paymentList";
     }
+
+    @RequestMapping(value = { "/payment" })
+    public String getInvoiceList(@RequestParam ("id") int id,  Model model) {
+        List<Invoice> invoiceList = this.invoiceService.getInvoicesByPaymentId(id);
+        paymentExist = paymentService.isPaymentForThisMonthExist();
+        List<Payment> paymentList = paymentService.getAllPayments();
+
+        model.addAttribute("paymentExist", paymentExist);
+        model.addAttribute("invoiceList", invoiceList);
+
+        return "invoiceList";
+    }
+
+    @RequestMapping(value = { "/invoice" })
+    public String getInvoiceView(@RequestParam ("uuid") String uuid,  Model model, HttpServletResponse httpResponse) throws IOException {
+        Invoice invoice = this.invoiceService.getInvoiceByUuid(uuid);
+        if (invoice == null) httpResponse.sendRedirect("/404");
+        paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        model.addAttribute("invoice", invoice);
+        model.addAttribute("paymentDate", paymentDate);
+
+        return "invoiceView";
+    }
+
 }

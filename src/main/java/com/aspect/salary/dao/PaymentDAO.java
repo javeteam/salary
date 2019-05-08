@@ -1,7 +1,5 @@
 package com.aspect.salary.dao;
-
 import com.aspect.salary.entity.Payment;
-import com.aspect.salary.service.InvoiceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -46,7 +44,7 @@ public class PaymentDAO extends JdbcDaoSupport {
                     PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                     ps.setTimestamp(1, Timestamp.valueOf(payment.getCreationDate()));
                     ps.setString(2, payment.isComplete() ? "Y" : "N");
-                    ps.setFloat(3, payment.getTotalAmount());
+                    ps.setInt(3, payment.getTotalAmount());
                     return ps;
                 }, keyHolder
         );
@@ -56,17 +54,17 @@ public class PaymentDAO extends JdbcDaoSupport {
     }
 
 
-    public Integer getIncompletePaymentID (){
+    public Integer getIncompletePaymentId (){
         String sql = "SELECT id,date,complete,total_amount FROM `payments` WHERE complete = 'N'";
         List<Payment> paymentList = new ArrayList<>();
-        this.getJdbcTemplate().query(sql, new PaymentDAO.MyRowCallbackHandler(paymentList));
+        this.getJdbcTemplate().query(sql, new PaymentRowCallbackHandler(paymentList));
         if (paymentList.size() != 0 ){
             return paymentList.get(0).getId();
         }
         return null;
     }
 
-    public Payment getPaymentById(int id){
+    public Payment getRawPaymentById(int id){
         String sql = "SELECT id,date,complete,total_amount FROM `payments` WHERE id = ?";
         Object[] params = new Object[] {id};
         try {
@@ -78,15 +76,15 @@ public class PaymentDAO extends JdbcDaoSupport {
     }
 
     public List<Payment> getAllPayments(){
-        String sql = "SELECT id,date,complete,total_amount FROM `payments`";
+        String sql = "SELECT id,date,complete,total_amount FROM `payments` ORDER BY date DESC";
         List<Payment> paymentList = new ArrayList<>();
-        this.getJdbcTemplate().query(sql, new PaymentDAO.MyRowCallbackHandler(paymentList));
+        this.getJdbcTemplate().query(sql, new PaymentRowCallbackHandler(paymentList));
         return paymentList;
     }
 
-    private static class MyRowCallbackHandler implements RowCallbackHandler{
+    private static class PaymentRowCallbackHandler implements RowCallbackHandler{
         List<Payment> paymentList;
-        public MyRowCallbackHandler(List<Payment> paymentList){
+        public PaymentRowCallbackHandler(List<Payment> paymentList){
             this.paymentList = paymentList;
         }
 
@@ -95,7 +93,7 @@ public class PaymentDAO extends JdbcDaoSupport {
             int id = rs.getInt("id");
             Timestamp creationDate = rs.getTimestamp("date");
             boolean complete = rs.getString("complete").equals("Y");
-            float TotalAmount = rs.getFloat("total_amount");
+            int TotalAmount = rs.getInt("total_amount");
             Payment payment = new Payment(id, creationDate.toLocalDateTime(), complete, TotalAmount);
             paymentList.add(payment);
         }
@@ -107,7 +105,7 @@ public class PaymentDAO extends JdbcDaoSupport {
             int id = rs.getInt("id");
             Timestamp creationDate = rs.getTimestamp("date");
             boolean complete = rs.getString("complete").equals("Y");
-            float TotalAmount = rs.getFloat("total_amount");
+            int TotalAmount = rs.getInt("total_amount");
             return new Payment(id, creationDate.toLocalDateTime(), complete, TotalAmount);
         }
     }

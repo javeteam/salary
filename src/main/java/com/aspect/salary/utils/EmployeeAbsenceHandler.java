@@ -3,6 +3,7 @@ package com.aspect.salary.utils;
 import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.entity.Absence;
 import com.aspect.salary.entity.Employee;
+import com.aspect.salary.utils.CommonUtils.*;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -13,6 +14,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import static com.aspect.salary.utils.CommonUtils.roundValue;
 import static java.time.temporal.TemporalAdjusters.firstDayOfMonth;
 import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 
@@ -29,6 +31,8 @@ public class EmployeeAbsenceHandler {
     private LocalTime lunchStart;
     private LocalTime lunchEnd;
     private LocalTime workingDayEnd;
+    private Position position;
+    private float workingDayDuration;
 
 
     public EmployeeAbsenceHandler(Employee employee){
@@ -39,6 +43,8 @@ public class EmployeeAbsenceHandler {
         this.workingDayEnd = employee.getWorkingDayEnd();
         this.lunchStart = employee.getLunchStart();
         this.lunchEnd = employee.getLunchEnd();
+        this.position = employee.getPosition();
+        this.workingDayDuration = employee.getWorkingDayDuration();
     }
 
     public List<List<Absence>> getIntersectionsList(){
@@ -269,32 +275,35 @@ public class EmployeeAbsenceHandler {
                 case "VACATION":
                     absence.setDurationDays(durationInDays);
                     if(isBetweenCurrentAndNextPayDay(dateFrom.toLocalDate())){
-                        absence.setWeight(Absence.Weight.POSITIVE);
+                        absence.setWeight(Weight.POSITIVE);
                         absence.setDurationDays(durationInDays);
                     } else if (isBetweenLastAndCurrentPayDay(dateFrom.toLocalDate())){
                         if(creationDate.toLocalDate().isBefore(LocalDate.now().minusMonths(1).withDayOfMonth(1))){
-                            absence.setWeight(Absence.Weight.NEGATIVE);
+                            absence.setWeight(Weight.NEGATIVE);
                             absence.setDurationDays(durationInDays - weekendsAmount);
                         } else {
-                            absence.setWeight(Absence.Weight.POSITIVE);
+                            absence.setWeight(Weight.POSITIVE);
                             absence.setDurationDays(weekendsAmount);
                         }
                     }
                     break;
                 case "OVERTIME":
-                    float durationValue = CommonUtils.round(durationInHours,2);
+                    float durationValue = roundValue(durationInHours,2);
                     absence.setDurationHours(durationValue);
-                    absence.setWeight(Absence.Weight.POSITIVE);
+                    absence.setWeight(Weight.POSITIVE);
                     break;
                 case "LEAVEUNPAYED":
                     float lunchIntersectionTime = getDurationOfIntersection(absence.getDateFrom().toLocalTime(), absence.getDateTo().toLocalTime(),lunchStart,lunchEnd);
-                    durationValue = CommonUtils.round((durationInHours - lunchIntersectionTime),2);
+                    durationValue = roundValue((durationInHours - lunchIntersectionTime),2);
                     absence.setDurationHours(durationValue);
-                    absence.setWeight(Absence.Weight.NEGATIVE);
+                    // If employee is Project manager and
+                    if(position.equals(Position.PM) && absence.getDuration() < workingDayDuration){
+                        absence.setWeight(Weight.NEUTRAL);
+                    } else absence.setWeight(Weight.NEGATIVE);
                     break;
                 case "LEAVESICK":
                     absence.setDurationDays(durationInDays);
-                    absence.setWeight(Absence.Weight.NEUTRAL);
+                    absence.setWeight(Weight.NEUTRAL);
                     break;
             }
         }

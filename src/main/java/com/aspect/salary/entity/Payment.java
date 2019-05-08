@@ -1,31 +1,38 @@
 package com.aspect.salary.entity;
 
+import static com.aspect.salary.utils.CommonUtils.*;
+
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class Payment {
-    private int id;
+    private Integer id;
     private LocalDateTime creationDate;
     private boolean complete;
-    private float TotalAmount;
+    private int TotalAmount;
     private List<Invoice> invoices = new ArrayList<>();
 
-    public Payment(){
-        this.id = -1;
+    public Payment() {
         this.creationDate = LocalDateTime.now();
         this.complete = false;
     }
 
-    public Payment(int id, LocalDateTime creationDate, boolean complete, float TotalAmount){
+    public Payment(int id, LocalDateTime creationDate, boolean complete, int TotalAmount) {
         this.id = id;
         this.creationDate = creationDate;
         this.complete = complete;
         this.TotalAmount = TotalAmount;
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
     }
 
     public LocalDateTime getCreationDate() {
@@ -40,11 +47,15 @@ public class Payment {
         this.complete = complete;
     }
 
-    public float getTotalAmount() {
+    public int getTotalAmount() {
         return TotalAmount;
     }
 
-    public void setTotalAmount(float totalAmount) {
+    public String getFormattedTotalAmount() {
+        return currencyFormatter(TotalAmount);
+    }
+
+    public void setTotalAmount(int totalAmount) {
         this.TotalAmount = totalAmount;
     }
 
@@ -52,7 +63,15 @@ public class Payment {
         return invoices;
     }
 
-    public void addInvoice (Invoice invoice){
+    public void addInvoice(Invoice invoice) {
         invoices.add(invoice);
+    }
+
+    public String getPaidPeriod() {
+        return this.creationDate.minusMonths(1).toLocalDate().format(DateTimeFormatter.ofPattern("MM.yyyy"));
+    }
+
+    public void setInvoices(List<Invoice> invoices) {
+        this.invoices = invoices;
     }
 }

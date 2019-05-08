@@ -67,7 +67,14 @@ public class PaymentService {
         return true;
     }
 
-    public List<Payment> getPayments(){
+    public Payment getPaymentById(int id){
+        Payment payment = this.paymentDAO.getRawPaymentById(id);
+        List<Invoice> paymentInvoices = invoiceService.getInvoicesByPaymentId(id);
+        payment.setInvoices(paymentInvoices);
+        return payment;
+    }
+
+    public List<Payment> getAllPayments(){
         return this.paymentDAO.getAllPayments();
     }
 }

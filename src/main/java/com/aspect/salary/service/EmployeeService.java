@@ -1,6 +1,5 @@
 package com.aspect.salary.service;
 
-import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.dao.EmployeeDAO;
 import com.aspect.salary.entity.*;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;

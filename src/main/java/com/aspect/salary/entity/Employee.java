@@ -1,8 +1,12 @@
 package com.aspect.salary.entity;
 
+import com.aspect.salary.utils.CommonUtils.*;
+
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.aspect.salary.utils.CommonUtils.roundValue;
 
 public class Employee {
 
@@ -15,6 +19,7 @@ public class Employee {
     private String name;
     private String surname;
     private String xtrfName;
+    private Position position;
     private int vacationDaysLeft;
     private LocalTime workingDayStart;
     private LocalTime lunchStart;
@@ -26,7 +31,7 @@ public class Employee {
     private List<List<Absence>> intersectionsList = new ArrayList<>();
 
 
-    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, int vacationDaysLeft, LocalTime workingDayStart, LocalTime workingDayEnd, LocalTime lunchStart, LocalTime lunchEnd) {
+    public Employee(int id, int bitrixUserId, float salary, float officialSalary, float bonus, String email, String name, String surname, String xtrfName, Position position, int vacationDaysLeft, LocalTime workingDayStart, LocalTime workingDayEnd, LocalTime lunchStart, LocalTime lunchEnd) {
         this.id = id;
         this.bitrixUserId = bitrixUserId;
         this.salary = salary;
@@ -36,6 +41,7 @@ public class Employee {
         this.name = name;
         this.surname = surname;
         this.xtrfName = xtrfName;
+        this.position = position;
         this.vacationDaysLeft = vacationDaysLeft;
         this.workingDayStart = workingDayStart;
         this.workingDayEnd = workingDayEnd;
@@ -78,6 +84,10 @@ public class Employee {
         return xtrfName;
     }
 
+    public Position getPosition() {
+        return position;
+    }
+
     public int getId() {
         return id;
     }
@@ -116,6 +126,15 @@ public class Employee {
 
     public LocalTime getWorkingDayEnd() {
         return workingDayEnd;
+    }
+
+    public float getWorkingDayDuration(){
+        float workingDayStartInSeconds = workingDayStart.getHour() * 3600 + workingDayStart.getMinute() * 60;
+        float workingDayEndInSeconds = workingDayEnd.getHour() * 3600 + workingDayEnd.getMinute() * 60;
+        float lunchStartInSeconds = lunchStart.getHour() * 3600 + lunchStart.getMinute() * 60;
+        float lunchEndInSeconds = lunchEnd.getHour() * 3600 + lunchEnd.getMinute() * 60;
+        float rawWorkingDayDurationInSeconds = (workingDayEndInSeconds - workingDayStartInSeconds) - (lunchEndInSeconds - lunchStartInSeconds);
+        return roundValue(rawWorkingDayDurationInSeconds / 3600 , 2);
     }
 
     public List<CSVAbsence> getCSVAbsences() {
