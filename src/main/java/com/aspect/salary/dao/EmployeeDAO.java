@@ -4,6 +4,7 @@ import com.aspect.salary.entity.Employee;
 import com.aspect.salary.utils.CommonUtils.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowCallbackHandler;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,16 +25,42 @@ public class EmployeeDAO extends JdbcDaoSupport {
     }
 
     public Map<Integer, Employee> getRawEmployeeMap(){
-        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, rates.salary,rates.official_salary,rates.bonus " +
+        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end,employees.active, rates.salary,rates.payment_to_card,rates.bonus " +
                 "FROM employees " +
                 "LEFT JOIN rates ON rates.user_id = employees.id " +
                 "WHERE employees.active = 'Y' " +
                 "ORDER BY employees.name";
 
         Map<Integer, Employee> employeeMap = new HashMap<>();
-        this.getJdbcTemplate().query(sql, new MyRowCallbackHandler(employeeMap));
+        this.getJdbcTemplate().query(sql, new EmployeeMapRowCallbackHandler(employeeMap));
 
         return employeeMap;
+
+    }
+
+    public List <Employee> getAllRawEmployeeList(){
+        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, employees.active, rates.salary,rates.payment_to_card,rates.bonus " +
+                "FROM employees " +
+                "LEFT JOIN rates ON rates.user_id = employees.id " +
+                "ORDER BY employees.surname";
+
+        List<Employee> employeeList = new ArrayList<>();
+        this.getJdbcTemplate().query(sql, new EmployeeListRowCallbackHandler(employeeList));
+
+        return employeeList;
+
+    }
+
+    public Employee getEmployeeById(int id){
+        String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, employees.active, rates.salary,rates.payment_to_card,rates.bonus " +
+                "FROM employees " +
+                "LEFT JOIN rates ON rates.user_id = employees.id " +
+                "WHERE employees.id = ? " +
+                "ORDER BY employees.surname";
+
+        Object[] param = new Object[]{id};
+
+        return this.getJdbcTemplate().queryForObject(sql, param, new EmployeeRowMapper());
 
     }
 
@@ -64,11 +91,18 @@ public class EmployeeDAO extends JdbcDaoSupport {
         return true;
     }
 
-    private static class MyRowCallbackHandler implements RowCallbackHandler {
+    private static class EmployeeRowMapper implements RowMapper<Employee>{
+        @Override
+        public Employee mapRow(ResultSet rs, int i) throws SQLException {
+            return toEmployee(rs);
+        }
+    }
+
+    private static class EmployeeMapRowCallbackHandler implements RowCallbackHandler {
 
         private Map<Integer, Employee> map;
 
-        public MyRowCallbackHandler(Map<Integer, Employee> map) {
+        public EmployeeMapRowCallbackHandler(Map<Integer, Employee> map) {
             this.map = Objects.requireNonNull(map);
         }
 
@@ -76,41 +110,57 @@ public class EmployeeDAO extends JdbcDaoSupport {
         public void processRow(ResultSet rs) throws SQLException {
             map.put(rs.getInt("bitrix_user_id"), toEmployee(rs));
         }
+    }
 
-        private Employee toEmployee(ResultSet rs) throws SQLException {
-            int id = rs.getInt("id");
-            int bitrixUserId = rs.getInt("bitrix_user_id");
-            float salary = rs.getFloat("salary");
-            float officialSalary = rs.getFloat("official_salary");
-            float bonus = rs.getFloat("bonus");
-            String email = rs.getString("email");
-            String name = rs.getString("name");
-            String surname = rs.getString("surname");
-            String xtrfName = rs.getString("xtrf_Name");
-            Position position = Position.valueOf(rs.getString("position"));
-            int vacationDaysLeft = rs.getInt("vacation_days_left");
-            LocalTime workingDayStart = rs.getObject("working_day_start", LocalTime.class);
-            LocalTime workingDayEnd = rs.getObject("working_day_end", LocalTime.class);
-            LocalTime lunchStart = rs.getObject("lunch_start", LocalTime.class);
-            LocalTime lunchEnd = rs.getObject("lunch_end", LocalTime.class);
+    private static class EmployeeListRowCallbackHandler implements RowCallbackHandler {
 
-            return new Employee(
-                    id,
-                    bitrixUserId,
-                    salary,
-                    officialSalary,
-                    bonus,
-                    email,
-                    name,
-                    surname,
-                    xtrfName,
-                    position,
-                    vacationDaysLeft,
-                    workingDayStart,
-                    workingDayEnd,
-                    lunchStart,
-                    lunchEnd
-            );
+        private List<Employee> list;
+
+        public EmployeeListRowCallbackHandler(List <Employee> list) {
+            this.list = Objects.requireNonNull(list);
         }
+
+        @Override
+        public void processRow(ResultSet rs) throws SQLException {
+            list.add(toEmployee(rs));
+        }
+    }
+
+    private static Employee toEmployee(ResultSet rs) throws SQLException {
+        int id = rs.getInt("id");
+        int bitrixUserId = rs.getInt("bitrix_user_id");
+        boolean isActive = rs.getString("active").equals("Y");
+        float salary = rs.getFloat("salary");
+        float paymentToCard = rs.getFloat("payment_to_card");
+        float bonus = rs.getFloat("bonus");
+        String email = rs.getString("email");
+        String name = rs.getString("name");
+        String surname = rs.getString("surname");
+        String xtrfName = rs.getString("xtrf_Name");
+        Position position = Position.valueOf(rs.getString("position"));
+        int vacationDaysLeft = rs.getInt("vacation_days_left");
+        LocalTime workingDayStart = rs.getObject("working_day_start", LocalTime.class);
+        LocalTime workingDayEnd = rs.getObject("working_day_end", LocalTime.class);
+        LocalTime lunchStart = rs.getObject("lunch_start", LocalTime.class);
+        LocalTime lunchEnd = rs.getObject("lunch_end", LocalTime.class);
+
+        return new Employee(
+                id,
+                bitrixUserId,
+                isActive,
+                salary,
+                paymentToCard,
+                bonus,
+                email,
+                name,
+                surname,
+                xtrfName,
+                position,
+                vacationDaysLeft,
+                workingDayStart,
+                workingDayEnd,
+                lunchStart,
+                lunchEnd
+        );
     }
 }

@@ -2,6 +2,7 @@ package com.aspect.salary.utils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.format.DateTimeFormatter;
 
 
 public class CommonUtils {
@@ -42,5 +43,10 @@ public class CommonUtils {
         }
         return result.reverse().toString();
     }
+
+    public static DateTimeFormatter monthDateFormatter = DateTimeFormatter.ofPattern("MM.yyyy");
+    public static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+    public static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy (HH:mm");
+    public static DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm)");
 
 }

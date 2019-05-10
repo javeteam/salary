@@ -30,7 +30,7 @@
               Працівники
             </a>
             <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-              <a class="dropdown-item" href="/addEmployee">Додати працівника</a>
+              <a class="dropdown-item" href="/createEmployee">Додати працівника</a>
               <a class="dropdown-item" href="/employeeList">Керування працівниками</a>
             </div>
           </li>

@@ -42,7 +42,7 @@
             </tr>
             <tr>
                 <td><b>Зарплата на картку</b></td>
-                <td colspan="3">${invoice.getFormattedCurrency(invoice.getOfficialSalary())}</td>
+                <td colspan="3">${invoice.getFormattedCurrency(invoice.getPaymentToCard())}</td>
             </tr>
 
             <c:forEach  items="${invoice.getAbsenceIntersection()}" var ="intersections">

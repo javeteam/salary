@@ -1,13 +1,17 @@
 package com.aspect.salary.controllers;
 
+import com.aspect.salary.config.Config;
+import com.aspect.salary.entity.Employee;
 import com.aspect.salary.entity.Payment;
 import com.aspect.salary.entity.Session;
 import com.aspect.salary.service.CSVAbsenceService;
 import com.aspect.salary.service.InvoiceService;
+import com.aspect.salary.utils.CommonUtils;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.List;
@@ -71,33 +75,16 @@ public class MainController {
 
     @RequestMapping(value = { "/employeeList" }, method = RequestMethod.GET)
     public String getEmployees(Model model) {
-        List <String> missingEmployees = employeeService.printMissingUsers();
+        List <String> missingEmployees = this.employeeService.printMissingUsers();
+        List<Employee> employeeList = this.employeeService.getAllEmployeeList();
+        employeeList.sort(Comparator.comparing(Employee::getSurname));
 
         model.addAttribute("missingEmployees", missingEmployees);
+        model.addAttribute("employeeList", employeeList);
 
         return "employeeList";
     }
 
-    @RequestMapping(value = { "/new_payment" }, method = RequestMethod.GET)
-    public String getNewPayment(Model model) {
-        missingEmployees = employeeService.printMissingUsers();
-        payment = this.paymentService.createPayment(session);
-
-        List<Invoice> invoiceList = payment.getInvoices();
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-        boolean isDataValid = paymentService.isDataValid(payment);
-
-        String paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
-
-        model.addAttribute("missingEmployees", missingEmployees);
-        model.addAttribute("isDataValid", isDataValid);
-        model.addAttribute("invoices", invoiceList);
-        model.addAttribute("paymentDate", paymentDate);
-        model.addAttribute("paymentExist", paymentExist);
-
-
-        return "test";
-    }
 
     @RequestMapping(value = { "/createPayment" })
 
@@ -172,8 +159,8 @@ public class MainController {
     @RequestMapping(value = { "/payment" })
     public String getInvoiceList(@RequestParam ("id") int id,  Model model) {
         List<Invoice> invoiceList = this.invoiceService.getInvoicesByPaymentId(id);
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-        List<Payment> paymentList = paymentService.getAllPayments();
+        paymentExist = this.paymentService.isPaymentForThisMonthExist();
+        List<Payment> paymentList = this.paymentService.getAllPayments();
 
         model.addAttribute("paymentExist", paymentExist);
         model.addAttribute("invoiceList", invoiceList);
@@ -182,6 +169,16 @@ public class MainController {
     }
 
     @RequestMapping(value = { "/invoice" })
+    public String getInvoiceEditor(@RequestParam ("id") int id,  Model model, HttpServletResponse httpResponse) throws IOException {
+        Invoice invoice = this.invoiceService.getInvoiceByUuid(String.valueOf(id));
+        paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        model.addAttribute("invoice", invoice);
+        model.addAttribute("paymentDate", paymentDate);
+
+        return "invoiceEditor";
+    }
+
+    @RequestMapping(value = { "/invoiceConfirmation" })
     public String getInvoiceView(@RequestParam ("uuid") String uuid,  Model model, HttpServletResponse httpResponse) throws IOException {
         Invoice invoice = this.invoiceService.getInvoiceByUuid(uuid);
         if (invoice == null) httpResponse.sendRedirect("/404");
@@ -190,6 +187,30 @@ public class MainController {
         model.addAttribute("paymentDate", paymentDate);
 
         return "invoiceView";
+    }
+
+    @RequestMapping(value = { "/employee" })
+    public String getEmployeeEditor(@RequestParam ("id") int id,  Model model, HttpServletResponse httpResponse) throws IOException {
+        Employee employee = this.employeeService.getEmployeeById(id);
+        model.addAttribute("employee", employee);
+
+        return "employeeEditor";
+    }
+
+    @RequestMapping(value = { "/createEmployee" })
+    public String addEmployee(Model model, HttpServletResponse httpResponse) throws IOException {
+        Employee employee = new Employee(null,0,true,0,0,0,null,null,null,null, CommonUtils.Position.Other,0, LocalTime.of(9,0),LocalTime.of(18,0),LocalTime.of(13,0),LocalTime.of(14,0));
+        model.addAttribute("employee", employee);
+
+        return "employeeEditor";
+    }
+
+    @RequestMapping(value = { "/employeeSave" })
+    public String saveEmployee(@RequestParam ("name") String name, Model model, HttpServletResponse httpResponse) throws IOException {
+        Employee employee = new Employee(null,0,true,0,0,0,null,null,null,null, CommonUtils.Position.Other,0, LocalTime.of(9,0),LocalTime.of(18,0),LocalTime.of(13,0),LocalTime.of(14,0));
+        model.addAttribute("employee", employee);
+
+        return "employeeEditor";
     }
 
 }

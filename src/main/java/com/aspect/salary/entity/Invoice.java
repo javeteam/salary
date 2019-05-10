@@ -1,6 +1,6 @@
 package com.aspect.salary.entity;
 
-import com.aspect.salary.utils.CommonUtils.*;
+import static com.aspect.salary.utils.CommonUtils.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -23,7 +23,7 @@ public class Invoice {
     private LocalDateTime creationDate;
     private LocalDateTime modificationDate;
     private float salary;
-    private float officialSalary;
+    private float paymentToCard;
     private float bonus;
     private String uuid;
     private float workingDayDuration;
@@ -46,7 +46,7 @@ public class Invoice {
         this();
         this.employeeId = employee.getId();
         this.salary = employee.getSalary();
-        this.officialSalary = employee.getOfficialSalary();
+        this.paymentToCard = employee.getPaymentToCard();
         this.bonus = employee.getBonus();
         this.workingDayDuration = employee.getWorkingDayDuration();
         this.absenceIntersection = employee.getIntersectionsList();
@@ -74,11 +74,11 @@ public class Invoice {
         }
     }
 
-    public Invoice(int id, int employeeId, int salary, int officialSalary, int bonus, float workingDayDuration, boolean isConfirmed, LocalDateTime creationDate, LocalDateTime modificationDate, String username, String  uuid ){
+    public Invoice(int id, int employeeId, int salary, int paymentToCard, int bonus, float workingDayDuration, boolean isConfirmed, LocalDateTime creationDate, LocalDateTime modificationDate, String username, String  uuid ){
         this.id = id;
         this.employeeId = employeeId;
         this.salary = salary;
-        this.officialSalary = officialSalary;
+        this.paymentToCard = paymentToCard;
         this.bonus = bonus;
         this.workingDayDuration = workingDayDuration;
         this.confirmed = isConfirmed;
@@ -141,8 +141,8 @@ public class Invoice {
         return Math.round(salary);
     }
 
-    public void setOfficialSalary(float officialSalary) {
-        this.officialSalary = officialSalary;
+    public void setPaymentToCard(float paymentToCard) {
+        this.paymentToCard = paymentToCard;
     }
 
     public float getWorkingDayDuration() {
@@ -196,8 +196,8 @@ public class Invoice {
         return freelance;
     }
 
-    public int getOfficialSalary() {
-        return Math.round(officialSalary);
+    public int getPaymentToCard() {
+        return Math.round(paymentToCard);
 }
 
     public int getBonus() {
@@ -209,7 +209,7 @@ public class Invoice {
     }
 
     public String getPaidPeriod() {
-        return this.creationDate.minusMonths(1).toLocalDate().format(DateTimeFormatter.ofPattern("MM.yyyy"));
+        return this.creationDate.minusMonths(1).toLocalDate().format(monthDateFormatter);
     }
 
     public float getAbsenceGroupDuration (List<Absence> absenceList){
@@ -265,7 +265,7 @@ public class Invoice {
         int totalAmount;
         int overtimeAndUnpaidLeavePrise = getWeightedOvertimeAndUnpaidLeavePrise();
         int vacationPrise = getAbsenceGroupPrise(vacation);
-        totalAmount = Math.round(salary) + Math.round(bonus) + overtimeAndUnpaidLeavePrise + vacationPrise - Math.round(officialSalary);
+        totalAmount = Math.round(salary) + Math.round(bonus) + overtimeAndUnpaidLeavePrise + vacationPrise - Math.round(paymentToCard);
         return totalAmount;
     }
 

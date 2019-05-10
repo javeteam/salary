@@ -80,7 +80,7 @@
         </tr>
         <tr>
           <td><b>Зарплата на картку</b></td>
-          <td colspan="3">${invoice.getOfficialSalary()}</td>
+          <td colspan="3">${invoice.getPaymentToCard()}</td>
         </tr>
 
         <c:forEach  items="${invoice.getAbsenceIntersection()}" var ="intersections">

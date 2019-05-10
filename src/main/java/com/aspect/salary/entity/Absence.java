@@ -1,18 +1,11 @@
 package com.aspect.salary.entity;
 
-import com.aspect.salary.utils.CommonUtils.*;
-import org.jetbrains.annotations.NotNull;
+import static com.aspect.salary.utils.CommonUtils.*;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-
 
 public class Absence {
-
-    private DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-    private DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy (HH:mm");
-    private DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm)");
 
     private Integer id;
     private LocalDateTime creationDate;

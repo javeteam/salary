@@ -46,7 +46,18 @@ public class EmployeeService {
             String employeeInfo = employee.getName() + " " + employee.getSurname() + " { bitrix_id: " + employee.getBitrixUserId() + " }";
             missingEmployeesInfo.add(employeeInfo);
         }
-        return missingEmployeesInfo;
+        //return missingEmployeesInfo;
+        return new ArrayList<>();
+    }
+
+
+    public List<Employee> getAllEmployeeList(){
+        return this.employeeDAO.getAllRawEmployeeList();
+    }
+
+    public Employee getEmployeeById(int id){
+        return this.employeeDAO.getEmployeeById(id);
+
     }
 
     private static void handleEmployeeAbsences(Employee employee){

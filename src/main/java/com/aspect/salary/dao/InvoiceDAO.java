@@ -26,7 +26,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     public Integer addInvoice(Invoice invoice, int paymentId){
-        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, official_salary, bonus, working_day_duration, confirmed, creation_date, modification_date, uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, payment_to_card, bonus, working_day_duration, confirmed, creation_date, modification_date, uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         this.getJdbcTemplate().update(
@@ -35,7 +35,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
                     ps.setInt(1, paymentId);
                     ps.setInt(2, invoice.getEmployeeId());
                     ps.setInt(3, invoice.getSalary());
-                    ps.setInt(4, invoice.getOfficialSalary());
+                    ps.setInt(4, invoice.getPaymentToCard());
                     ps.setInt(5, invoice.getBonus());
                     ps.setFloat(6, invoice.getWorkingDayDuration());
                     ps.setString(7, invoice.isConfirmed() ? "Y" : "N");
@@ -52,7 +52,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
 
     public List<Invoice> getRawInvoicesByPaymentId(int paymentId){
         List<Invoice> invoiceList = new ArrayList<>();
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.official_salary, invoices.bonus, invoices.working_day_duration, " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.working_day_duration, " +
                 "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
@@ -66,7 +66,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     public Invoice getRawInvoiceByUuid(String uuid){
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.official_salary, invoices.bonus, invoices.working_day_duration, " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.working_day_duration, " +
                 "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
@@ -104,7 +104,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
         int id = rs.getInt("id");
         int employeeId = rs.getInt("employee_id");
         int salary = rs.getInt("salary");
-        int officialSalary = rs.getInt("official_salary");
+        int paymentToCard = rs.getInt("payment_to_card");
         int bonus = rs.getInt("bonus");
         float workingDayDuration = rs.getFloat("working_day_duration");
         boolean invoiceConfirmed = rs.getString("confirmed").equals("Y");
@@ -117,7 +117,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
                 id,
                 employeeId,
                 salary,
-                officialSalary,
+                paymentToCard,
                 bonus,
                 workingDayDuration,
                 invoiceConfirmed,

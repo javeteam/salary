@@ -6,7 +6,7 @@ import java.util.List;
 public class Session {
 
     private boolean csvUploaded = false;
-    private boolean officialSalarySpecified = false;
+    private boolean paymentToCardSpecified = false;
     private List<CSVAbsence> csvAbsenceList = new ArrayList<>();
 
 
@@ -26,12 +26,12 @@ public class Session {
         this.csvUploaded = csvUploaded;
     }
 
-    public boolean isOfficialSalarySpecified() {
-        return officialSalarySpecified;
+    public boolean isPaymentToCardSpecified() {
+        return paymentToCardSpecified;
     }
 
-    public void setOfficialSalarySpecified(boolean officialSalarySpecified) {
-        this.officialSalarySpecified = officialSalarySpecified;
+    public void setPaymentToCardSpecified(boolean paymentToCardSpecified) {
+        this.paymentToCardSpecified = paymentToCardSpecified;
     }
 
 }

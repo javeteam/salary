@@ -37,7 +37,7 @@
                     Працівники
                 </a>
                 <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="/addEmployee">Додати працівника</a>
+                    <a class="dropdown-item" href="/createEmployee">Додати працівника</a>
                     <a class="dropdown-item" href="/employeeList">Керування працівниками</a>
                 </div>
             </li>
@@ -100,7 +100,8 @@
 }
 
 .document {
-  padding-top: 40px;
+  padding-top: 30px;
+  padding-bottom: 30px;
   background-color: white;
   margin: 0 25%;
 }
