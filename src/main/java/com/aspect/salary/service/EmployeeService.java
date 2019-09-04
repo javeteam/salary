@@ -2,13 +2,12 @@ package com.aspect.salary.service;
 
 import com.aspect.salary.dao.EmployeeDAO;
 import com.aspect.salary.entity.*;
+import com.aspect.salary.form.EmployeeForm;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 public class EmployeeService {
@@ -16,8 +15,12 @@ public class EmployeeService {
     @Autowired
     private EmployeeDAO employeeDAO;
 
+    @Autowired
+    private InvoiceService invoiceService;
 
-    public List<Employee> getEmployeeList(List<Absence> bitrixAbsenceList,  List<CSVAbsence> csvAbsenceList) {
+
+    public List<Employee> getEmployeeList(List<Absence> bitrixAbsenceList,  Session session) {
+        List<CSVAbsence> csvAbsenceList = session.getCsvAbsenceList();
         Map<Integer, Employee>  employeeMap = this.employeeDAO.getRawEmployeeMap();
 
         //Puts all Bitrix absences into Employee objects which they connected with
@@ -35,7 +38,14 @@ public class EmployeeService {
         for(Employee employee : employeeList){
             handleEmployeeAbsences(employee);
             addCSVAbsencesToEmployee(employee, csvAbsenceList);
+            modifyCardPaymentInfo(employee, session);
         }
+        return employeeList;
+    }
+
+    public List<Employee> getRawEmployeeList(){
+        List<Employee> employeeList = new ArrayList<>(this.employeeDAO.getRawEmployeeMap().values());
+        employeeList.sort(Comparator.comparing(Employee::getSurname));
         return employeeList;
     }
 
@@ -46,8 +56,7 @@ public class EmployeeService {
             String employeeInfo = employee.getName() + " " + employee.getSurname() + " { bitrix_id: " + employee.getBitrixUserId() + " }";
             missingEmployeesInfo.add(employeeInfo);
         }
-        //return missingEmployeesInfo;
-        return new ArrayList<>();
+        return missingEmployeesInfo;
     }
 
 
@@ -60,7 +69,17 @@ public class EmployeeService {
 
     }
 
-    private static void handleEmployeeAbsences(Employee employee){
+    public void updateEmployee (Employee employee){
+        this.saveEmployeeToDB(employee);
+    }
+
+    public void saveEmployeeToDB(Employee employee){
+        if (employee.getId() == null){
+            this.employeeDAO.addEmployee(employee);
+        } else this.employeeDAO.updateEmployee(employee);
+    }
+
+    public static void handleEmployeeAbsences(Employee employee){
         EmployeeAbsenceHandler handler = new EmployeeAbsenceHandler(employee);
         handler.removeInappropriateItems();
         handler.splitIntoDays();
@@ -69,11 +88,93 @@ public class EmployeeService {
         handler.prepareInvoiceData();
     }
 
+    public EmployeeForm employeeFormByEmployee (Employee employee){
+        EmployeeForm employeeForm = new EmployeeForm();
+        employeeForm.setId(employee.getId());
+        employeeForm.setBitrixUserId(employee.getBitrixUserId());
+        employeeForm.setActive(employee.isActive());
+        employeeForm.setSalary(employee.getSalary());
+        employeeForm.setPaymentToCard(employee.getPaymentToCard());
+        employeeForm.setBonus(employee.getBonus());
+        employeeForm.setManagementBonus(employee.getManagementBonus());
+        employeeForm.setEmail(employee.getEmail());
+        employeeForm.setName(employee.getName());
+        employeeForm.setSurname(employee.getSurname());
+        employeeForm.setXtrfName(employee.getXtrfName());
+        employeeForm.setPosition(employee.getPosition());
+        employeeForm.setVacationDaysLeft(employee.getVacationDaysLeft());
+        employeeForm.setWorkingDayStart(employee.getWorkingDayStart());
+        employeeForm.setWorkingDayEnd(employee.getWorkingDayEnd());
+        employeeForm.setLunchStart(employee.getLunchStart());
+        employeeForm.setLunchEnd(employee.getLunchEnd());
+        employeeForm.setHireDate(employee.getHireDate());
+        employeeForm.setDismissDate(employee.getDismissDate());
+        employeeForm.setFinalInvoiceUuid(employee.getFinalInvoiceUuid());
+
+        return employeeForm;
+    }
+
+    public Employee employeeByEmployeeForm (EmployeeForm employeeForm){
+        Employee employee = new Employee();
+        employee.setId(employeeForm.getId());
+        employee.setBitrixUserId(employeeForm.getBitrixUserId());
+        employee.setActive(employeeForm.isActive());
+        employee.setSalary(employeeForm.getSalary());
+        employee.setPaymentToCard(employeeForm.getPaymentToCard());
+        employee.setBonus(employeeForm.getBonus());
+        employee.setManagementBonus(employeeForm.getManagementBonus());
+        employee.setEmail(employeeForm.getEmail());
+        employee.setName(employeeForm.getName());
+        employee.setSurname(employeeForm.getSurname());
+        employee.setXtrfName(employeeForm.getXtrfName());
+        employee.setPosition(employeeForm.getPosition());
+        employee.setVacationDaysLeft(employeeForm.getVacationDaysLeft());
+        employee.setWorkingDayStart(employeeForm.getWorkingDayStart());
+        employee.setWorkingDayEnd(employeeForm.getWorkingDayEnd());
+        employee.setLunchStart(employeeForm.getLunchStart());
+        employee.setLunchEnd(employeeForm.getLunchEnd());
+        employee.setHireDate(employeeForm.getHireDate());
+        employee.setDismissDate(employeeForm.getDismissDate());
+        employee.setFinalInvoiceUuid(employeeForm.getFinalInvoiceUuid());
+
+        return employee;
+    }
+
+    public List<EmployeeForm> employeeFormListByEmployeeList (List <Employee> employeeList){
+        List<EmployeeForm> employeeFormList = new ArrayList<>();
+        for(Employee employee : employeeList){
+            employeeFormList.add(employeeFormByEmployee(employee));
+        }
+        return employeeFormList;
+    }
+
+
+    public void updateVacationInfo (List<Invoice> invoiceList){
+        for (Invoice invoice : invoiceList){
+            int vacationDaysLeft = this.invoiceService.getUpdatedVacationDaysInfo(invoice);
+            int employeeId = invoice.getEmployeeId();
+            Employee employee = this.getEmployeeById(employeeId);
+            employee.setVacationDaysLeft(vacationDaysLeft);
+            this.updateEmployee(employee);
+        }
+    }
+
     private static void addCSVAbsencesToEmployee (Employee employee, List<CSVAbsence> csvAbsenceList){
         String xtrfUsername = employee.getXtrfName();
         for(CSVAbsence csvAbsence : csvAbsenceList) {
             if (csvAbsence.getEmployeeXtrfName().equals(xtrfUsername)) {
                 employee.addCSVAbsence(csvAbsence);
+            }
+        }
+    }
+
+    private static void modifyCardPaymentInfo(Employee employee, Session session){
+        int employeeId = employee.getId();
+        List <Employee> cardPaymentInfo = session.getEmployeeCardPayments();
+        for(Employee employeePaymentInfo : cardPaymentInfo){
+            if (employeePaymentInfo.getId() == employeeId){
+                employee.setPaymentToCard(employeePaymentInfo.getPaymentToCard());
+                return;
             }
         }
     }

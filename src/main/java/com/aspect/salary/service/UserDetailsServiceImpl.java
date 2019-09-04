@@ -28,7 +28,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("Login " + login + " wasn't found in the database");
         }
 
-        GrantedAuthority authority = new SimpleGrantedAuthority("superuser");
+        GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_ADMIN");
         List<GrantedAuthority> roleNames = new ArrayList<>();
         roleNames.add(authority);
 

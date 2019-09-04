@@ -2,13 +2,12 @@ package com.aspect.salary.entity;
 
 import static com.aspect.salary.utils.CommonUtils.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static com.aspect.salary.utils.CommonUtils.currencyFormatter;
 import static com.aspect.salary.utils.CommonUtils.roundValue;
 
 public class Invoice {
@@ -25,14 +24,14 @@ public class Invoice {
     private float salary;
     private float paymentToCard;
     private float bonus;
+    private float managementBonus;
     private String uuid;
     private float workingDayDuration;
+    private String notes;
+    private int vacationDaysLeft;
     private List<List<Absence>> absenceIntersection;
-    private List<Absence> vacation = new ArrayList<>();
-    private List<Absence> overtime = new ArrayList<>();
-    private List<Absence> unpaidLeave = new ArrayList<>();
-    private List<Absence> sickLeave = new ArrayList<>();
-    private List<Absence> freelance = new ArrayList<>();
+    private List<Absence> absenceList = new ArrayList<>();
+    private List<InvoiceItem> items = new ArrayList<>();
 
 
 
@@ -40,6 +39,7 @@ public class Invoice {
         this.creationDate = LocalDateTime.now();
         this.modificationDate = LocalDateTime.now();
         this.confirmed = false;
+        this.notes = "";
     }
 
     public Invoice(Employee employee){
@@ -48,14 +48,28 @@ public class Invoice {
         this.salary = employee.getSalary();
         this.paymentToCard = employee.getPaymentToCard();
         this.bonus = employee.getBonus();
+        this.managementBonus = employee.getManagementBonus();
         this.workingDayDuration = employee.getWorkingDayDuration();
         this.absenceIntersection = employee.getIntersectionsList();
         this.username = employee.getSurname() + " " + employee.getName();
         this.uuid  = UUID.randomUUID().toString();
+        this.vacationDaysLeft = employee.getVacationDaysLeft();
 
-        List<Absence> absenceList = employee.getAbsences();
+        if(employee.getHireDate().isAfter(LocalDate.now().withDayOfMonth(1).minusMonths(1))){
+            int daysAfterHiring = 0;
+            for (int dayNumber = employee.getHireDate(). getDayOfMonth(); dayNumber <= employee.getHireDate().lengthOfMonth(); dayNumber++){
+                if (employee.getHireDate().withDayOfMonth(dayNumber).getDayOfWeek().getValue() <= 5){
+                    daysAfterHiring++;
+                }
+            }
+            InvoiceItem invoiceItem = new InvoiceItem();
+            invoiceItem.setDescription("Утримання за невідпрацьовані дні");
+            invoiceItem.setPrise(Math.round( (daysAfterHiring/WORKING_DAYS_PER_MONTH - 1) * salary) );
+            if (invoiceItem.getPrise() < 0) this.addItem(invoiceItem);
+        }
+
+        absenceList.addAll(employee.getAbsences());
         List<CSVAbsence> csvAbsenceList = employee.getCSVAbsences();
-        setAbsences(absenceList);
 
         if(csvAbsenceList.size() != 0){
             for(CSVAbsence csvAbsence : csvAbsenceList){
@@ -63,51 +77,16 @@ public class Invoice {
 
                 if(csvAbsence.getAbsenceType().equals("OVERTIME")) {
                     durationHours = (float)csvAbsence.getPrise() / this.getOvertimeHourPrise();
-                    durationHours = roundValue(durationHours,2);
-                    overtime.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Weight.POSITIVE ));
                 } else if(csvAbsence.getAbsenceType().equals("FREELANCE")){
                     durationHours = (float) csvAbsence.getPrise() / this.getFreelanceHourPrise();
-                    durationHours = roundValue(durationHours,2);
-                    freelance.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Weight.POSITIVE ));
                 }
+                durationHours = roundValue(durationHours,2);
+                absenceList.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Weight.POSITIVE ));
             }
         }
     }
 
-    public Invoice(int id, int employeeId, int salary, int paymentToCard, int bonus, float workingDayDuration, boolean isConfirmed, LocalDateTime creationDate, LocalDateTime modificationDate, String username, String  uuid ){
-        this.id = id;
-        this.employeeId = employeeId;
-        this.salary = salary;
-        this.paymentToCard = paymentToCard;
-        this.bonus = bonus;
-        this.workingDayDuration = workingDayDuration;
-        this.confirmed = isConfirmed;
-        this.creationDate = creationDate;
-        this.username = username;
-        this.uuid = uuid;
-    }
 
-    public void setAbsences(List<Absence> absenceList){
-        for (Absence absence : absenceList){
-            switch (absence.getAbsenceType()){
-                case ("VACATION"):
-                    vacation.add(absence);
-                    break;
-                case ("OVERTIME"):
-                    overtime.add(absence);
-                    break;
-                case ("LEAVESICK"):
-                    sickLeave.add(absence);
-                    break;
-                case ("LEAVEUNPAYED"):
-                    unpaidLeave.add(absence);
-                    break;
-                case ("FREELANCE"):
-                    freelance.add(absence);
-                    break;
-            }
-        }
-    }
 
     public int getEmployeeId() {
         return employeeId;
@@ -129,6 +108,10 @@ public class Invoice {
         return creationDate;
     }
 
+    public void setCreationDate(LocalDateTime creationDate) {
+        this.creationDate = creationDate;
+    }
+
     public LocalDateTime getModificationDate() {
         return modificationDate;
     }
@@ -141,12 +124,36 @@ public class Invoice {
         return Math.round(salary);
     }
 
+    public void setSalary(float salary) {
+        this.salary = salary;
+    }
+
+    public void setBonus(float bonus) {
+        this.bonus = bonus;
+    }
+
+    public void setManagementBonus(float managementBonus) {
+        this.managementBonus = managementBonus;
+    }
+
     public void setPaymentToCard(float paymentToCard) {
         this.paymentToCard = paymentToCard;
     }
 
     public float getWorkingDayDuration() {
         return workingDayDuration;
+    }
+
+    public void setWorkingDayDuration(float workingDayDuration) {
+        this.workingDayDuration = workingDayDuration;
+    }
+
+    public int getVacationDaysLeft() {
+        return vacationDaysLeft;
+    }
+
+    public void setVacationDaysLeft(int vacationDaysLeft) {
+        this.vacationDaysLeft = vacationDaysLeft;
     }
 
     public int getFreelanceHourPrise() {
@@ -176,24 +183,8 @@ public class Invoice {
         return username;
     }
 
-    public List<Absence> getVacation() {
-        return vacation;
-    }
-
-    public List<Absence> getOvertime() {
-        return overtime;
-    }
-
-    public List<Absence> getUnpaidLeave() {
-        return unpaidLeave;
-    }
-
-    public List<Absence> getSickLeave() {
-        return sickLeave;
-    }
-
-    public List<Absence> getFreelance() {
-        return freelance;
+    public void setUsername(String username) {
+        this.username = username;
     }
 
     public int getPaymentToCard() {
@@ -204,86 +195,52 @@ public class Invoice {
         return Math.round(bonus);
     }
 
+    public int getManagementBonus() {
+        return Math.round(managementBonus);
+    }
+
     public String getUuid() {
         return uuid;
     }
 
-    public String getPaidPeriod() {
-        return this.creationDate.minusMonths(1).toLocalDate().format(monthDateFormatter);
+    public void setUuid(String uuid) {
+        this.uuid = uuid;
     }
 
-    public float getAbsenceGroupDuration (List<Absence> absenceList){
-        float totalDuration = 0;
-        for (Absence absence : absenceList){
-            totalDuration += absence.getDuration() * absence.getCoefficient();
-        }
-        return totalDuration;
+    public String getNotes() {
+        return notes;
     }
 
-    public int getAbsencePrise(Absence absence){
-        switch (absence.getAbsenceType()){
-
-            case "LEAVESICK":
-            case "VACATION":
-                return Math.round(absence.getDuration() * absence.getCoefficient() * getWorkingDayPrise());
-            case "OVERTIME":
-                return Math.round(absence.getDuration() * absence.getCoefficient() * getOvertimeHourPrise());
-            case "LEAVEUNPAYED":
-                return Math.round(absence.getDuration() * absence.getCoefficient() * getFreelanceHourPrise());
-            default:
-                return 0;
-        }
-    }
-
-    public int getAbsenceGroupPrise(List<Absence> absenceList){
-        int groupPrise = 0;
-        for (Absence absence : absenceList){
-            groupPrise += getAbsencePrise(absence);
-        }
-        return groupPrise;
-
-    }
-
-    public float getWeightedOvertimeAndUnpaidLeaveDuration(){
-        float overtimeGroupDuration = getAbsenceGroupDuration(getOvertime());
-        float unpaidLeaveGroupDuration = getAbsenceGroupDuration(getUnpaidLeave());
-
-        return overtimeGroupDuration + unpaidLeaveGroupDuration;
-    }
-
-    public int getWeightedOvertimeAndUnpaidLeavePrise(){
-        float duration = getWeightedOvertimeAndUnpaidLeaveDuration();
-        float prise = ((duration > 0) ? duration * getOvertimeHourPrise() : duration * getFreelanceHourPrise());
-        return Math.round(prise);
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public List<List<Absence>> getAbsenceIntersection() {
         return absenceIntersection;
     }
 
-    public int getTotalAmount (){
-        int totalAmount;
-        int overtimeAndUnpaidLeavePrise = getWeightedOvertimeAndUnpaidLeavePrise();
-        int vacationPrise = getAbsenceGroupPrise(vacation);
-        totalAmount = Math.round(salary) + Math.round(bonus) + overtimeAndUnpaidLeavePrise + vacationPrise - Math.round(paymentToCard);
-        return totalAmount;
+    public List<Absence> getAbsences() {
+        return absenceList;
     }
 
-    public String getFormattedCurrency(int value){
-        return currencyFormatter(value);
+    public void setAbsences(List<Absence> absenceList) {
+        this.absenceList = absenceList;
     }
 
-    public String getLocalizedAbsenceType(Absence absence){
-        switch (absence.getAbsenceType()) {
-            case ("VACATION"):
-                return "Відпустка";
-            case ("OVERTIME"):
-                return "Овертайм";
-            case ("LEAVESICK"):
-                return "Лікарняний";
-            case ("LEAVEUNPAYED"):
-                return "Години за свій кошт";
-            default: return absence.getAbsenceType();
-        }
+    public void addAbsences(List<Absence> absenceList) {
+        this.absenceList.addAll(absenceList);
     }
+
+    public List<InvoiceItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<InvoiceItem> items) {
+        this.items = items;
+    }
+
+    public void addItem(InvoiceItem item){
+        this.items.add(item);
+    }
+
 }

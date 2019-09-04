@@ -1,6 +1,7 @@
 package com.aspect.salary.dao;
 
 import com.aspect.salary.entity.Invoice;
+import com.aspect.salary.entity.Payment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -13,6 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import javax.sql.DataSource;
 import java.sql.*;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,7 +30,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     public Integer addInvoice(Invoice invoice, int paymentId){
-        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, payment_to_card, bonus, working_day_duration, confirmed, creation_date, modification_date, uuid) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, payment_to_card, bonus, management_bonus, working_day_duration, vacation_days_left, confirmed, creation_date, modification_date, uuid, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         this.getJdbcTemplate().update(
@@ -37,11 +41,14 @@ public class InvoiceDAO extends JdbcDaoSupport {
                     ps.setInt(3, invoice.getSalary());
                     ps.setInt(4, invoice.getPaymentToCard());
                     ps.setInt(5, invoice.getBonus());
-                    ps.setFloat(6, invoice.getWorkingDayDuration());
-                    ps.setString(7, invoice.isConfirmed() ? "Y" : "N");
-                    ps.setTimestamp(8, Timestamp.valueOf(invoice.getCreationDate()));
-                    ps.setTimestamp(9, Timestamp.valueOf(invoice.getModificationDate()));
-                    ps.setString(10, invoice.getUuid());
+                    ps.setInt(6, invoice.getManagementBonus());
+                    ps.setFloat(7, invoice.getWorkingDayDuration());
+                    ps.setInt(8, invoice.getVacationDaysLeft());
+                    ps.setString(9, invoice.isConfirmed() ? "Y" : "N");
+                    ps.setTimestamp(10, Timestamp.valueOf(invoice.getCreationDate()));
+                    ps.setTimestamp(11, Timestamp.valueOf(invoice.getModificationDate()));
+                    ps.setString(12, invoice.getUuid());
+                    ps.setString(13, invoice.getNotes());
                     return ps;
                 }, keyHolder
         );
@@ -52,8 +59,8 @@ public class InvoiceDAO extends JdbcDaoSupport {
 
     public List<Invoice> getRawInvoicesByPaymentId(int paymentId){
         List<Invoice> invoiceList = new ArrayList<>();
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.working_day_duration, " +
-                "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, CONCAT(employees.surname, \" \", employees.name) AS username " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
+                "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, invoices.notes, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
                 "WHERE payment_id = ?";
@@ -66,17 +73,50 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     public Invoice getRawInvoiceByUuid(String uuid){
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.working_day_duration, " +
-                "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, CONCAT(employees.surname, \" \", employees.name) AS username " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
+                "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, invoices.notes, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
-                "WHERE invoices.uuid = ? AND invoices.confirmed = 'N'";
+                "WHERE invoices.uuid = ?";
         Object[] params = new Object[]{uuid};
 
         try {
             return this.getJdbcTemplate().queryForObject(sql, params, new InvoiceRowMapper());
         } catch (EmptyResultDataAccessException e){
             return null;
+        }
+    }
+
+    public void updateInvoice(Invoice invoice){
+        String sql = "UPDATE `invoices` SET salary = ?, payment_to_card = ?, bonus = ?, management_bonus = ?, working_day_duration = ?, confirmed = ?, modification_date = ?, notes = ?, vacation_days_left = ?  WHERE id = ?";
+
+        this.getJdbcTemplate().update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setFloat(1, invoice.getSalary());
+            ps.setFloat(2,invoice.getPaymentToCard());
+            ps.setFloat(3,invoice.getBonus());
+            ps.setFloat(4,invoice.getManagementBonus());
+            ps.setFloat(5, invoice.getWorkingDayDuration());
+            ps.setString(6, invoice.isConfirmed() ? "Y" : "N");
+            ps.setTimestamp(7, Timestamp.valueOf(invoice.getModificationDate()));
+            ps.setString(8, invoice.getNotes());
+            ps.setInt(9, invoice.getVacationDaysLeft());
+            ps.setInt(10, invoice.getId());
+            return ps;
+        });
+    }
+
+    public Integer getMonthsAmountBetweenThisAndLastInvoice(Invoice invoice){
+        //int employeeId = invoice.getEmployeeId();
+        //String sql = "SELECT TIMESTAMPDIFF(MONTH, MAX(invoices.creation_date), ?) AS MonthAmount FROM invoices WHERE invoices.employee_id = ? AND invoices.creation_date < ?";
+        String sql = "SELECT MAX(invoices.creation_date) AS date FROM invoices WHERE invoices.employee_id = ? AND invoices.creation_date < ?";
+        Object [] params = new Object[]{invoice.getEmployeeId(), invoice.getCreationDate()};
+
+        Timestamp lastInvoiceCreationDate = this.getJdbcTemplate().queryForObject(sql,params,Timestamp.class);
+        if(lastInvoiceCreationDate == null) return 0;
+        else{
+            LocalDate oldInvoiceDate = lastInvoiceCreationDate.toLocalDateTime().toLocalDate();
+            return (int) ChronoUnit.MONTHS.between(oldInvoiceDate.withDayOfMonth(1), invoice.getCreationDate().toLocalDate().withDayOfMonth(1));
         }
     }
 
@@ -101,29 +141,24 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     private static Invoice invoiceFromResultSet (ResultSet rs) throws SQLException {
-        int id = rs.getInt("id");
-        int employeeId = rs.getInt("employee_id");
-        int salary = rs.getInt("salary");
-        int paymentToCard = rs.getInt("payment_to_card");
-        int bonus = rs.getInt("bonus");
-        float workingDayDuration = rs.getFloat("working_day_duration");
-        boolean invoiceConfirmed = rs.getString("confirmed").equals("Y");
-        Timestamp creationDate = rs.getTimestamp("creation_date");
-        Timestamp modificationDate = rs.getTimestamp("modification_date");
-        String uuid = rs.getString("uuid");
-        String username = rs.getString("username");
+        Invoice invoice = new Invoice();
 
-        return new Invoice(
-                id,
-                employeeId,
-                salary,
-                paymentToCard,
-                bonus,
-                workingDayDuration,
-                invoiceConfirmed,
-                creationDate.toLocalDateTime(),
-                modificationDate.toLocalDateTime(),
-                username,uuid);
+        invoice.setId(rs.getInt("id"));
+        invoice.setEmployeeId(rs.getInt("employee_id"));
+        invoice.setSalary(rs.getInt("salary"));
+        invoice.setPaymentToCard(rs.getInt("payment_to_card"));
+        invoice.setBonus(rs.getInt("bonus"));
+        invoice.setManagementBonus(rs.getInt("management_bonus"));
+        invoice.setWorkingDayDuration(rs.getFloat("working_day_duration"));
+        invoice.setConfirmed(rs.getString("confirmed").equals("Y"));
+        invoice.setCreationDate(rs.getTimestamp("creation_date").toLocalDateTime());
+        invoice.setModificationDate(rs.getTimestamp("modification_date").toLocalDateTime());
+        invoice.setVacationDaysLeft(rs.getInt("vacation_days_left"));
+        invoice.setUuid(rs.getString("uuid"));
+        invoice.setUsername(rs.getString("username"));
+        invoice.setNotes(rs.getString("notes"));
 
+        return  invoice;
     }
+
 }

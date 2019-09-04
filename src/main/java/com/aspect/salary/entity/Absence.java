@@ -45,7 +45,7 @@ public class Absence {
         this.absenceType = absenceType;
         if (absenceType.equals("LEAVESICK") || absenceType.equals("VACATION")) {
             dateFrom = dateFrom.toLocalDate().atTime(LocalTime.MIN);
-            dateTo = dateTo.toLocalDate().atTime(LocalTime.MAX);
+            dateTo = dateTo.toLocalDate().atTime(23,59,59);
         }
     }
 

@@ -1,8 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
 <html>
 <head>
-    <title>Sign in</title>
+    <title>Список платехів</title>
     <jsp:include page="assets.jsp"/>
     <script>
         jQuery(document).ready(function($) {
@@ -11,46 +12,32 @@
     });
 });
     </script>
+
+    <style type="text/css">
+        .custom-centered{
+            margin:0 auto;
+            width:300px;
+        }
+
+        .document {
+            padding-top: 20px;
+            padding-bottom: 20px;
+            padding-left: 20px;
+            padding-right: 20px;
+            background-color: white;
+            margin: 0 25%;
+        }
+
+        #itemList tbody tr:hover {
+            cursor:pointer;
+            background-color: grey;
+        }
+    </style>
+
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-light bg-light">
-    <a class="navbar-brand" href="/welcome">Aspect Translation Company</a>
-    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-    </button>
+<jsp:include page="navbar.jsp"/>
 
-    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-        <ul class="navbar-nav mr-auto">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Платежі
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <c:if test="${not paymentExist}">
-                        <a class="dropdown-item" href="/createPayment">Новий платіж</a>
-                    </c:if>
-                    <a class="dropdown-item" href="/paymentList">Платежі</a>
-                </div>
-            </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                    Працівники
-                </a>
-                <div class="dropdown-menu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="/createEmployee">Додати працівника</a>
-                    <a class="dropdown-item" href="/employeeList">Керування працівниками</a>
-                </div>
-            </li>
-
-            <li class="nav-item">
-                <a class="nav-link" href="/logout">Змінити пароль</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/logout">Вийти</a>
-            </li>
-        </ul>
-    </div>
-</nav>
 <c:if test="${not empty missingEmployees}">
     <c:forEach  items="${missingEmployees}" var ="missingEmployee">
         <div class="alert alert-warning" role="alert">
@@ -73,7 +60,7 @@
 
             <tbody>
             <c:forEach  items="${invoiceList}" var ="invoice" varStatus="loop">
-                <tr title="Редагувати платіж" class="clickable-row" data-href="/invoice?id=${invoice.getId()}">
+                <tr title="Редагувати платіж" class="clickable-row" data-href="/invoice?uuid=${invoice.getUuid()}">
                     <td>${loop.index + 1}</td>
                     <td>
                         <c:if test="${invoice.getAbsenceIntersection().size() > 0 }">
@@ -81,33 +68,30 @@
                         </c:if>
                         ${invoice.getUsername()}
                     </td>
-                    <td>${payment.isConfirmed() ? "Підтверджено" : "Не підтверджено"}</td>
+                    <td>
+                        <p style="margin-bottom: unset;">
+                            <c:if test="${(not invoice.isConfirmed()) && (invoice.getNotes().length() > 0)}">
+                                <span class="fas fa-exclamation-triangle" style="color: orange;"> </span>
+                            </c:if> ${invoice.isConfirmed() ? "Підтверджено" : (invoice.getNotes().length() > 0 ? "Відхилено" : "Не підтверджено")}
+                        </p>
+                    </td>
                     <td>${invoice.getFormattedCurrency(invoice.getTotalAmount())} грн</td>
                 </tr>
             </c:forEach>
             </tbody>
         </table>
     </c:if>
+    <c:if test="${allInvoicesConfirmed && !payment.isComplete()}">
+    <hr>
+
+    <form:form action="/paymentComplete" class="custom-centered" method="POST" modelAttribute="payment">
+        <input type="hidden" name="id" value="${payment.id}" />
+        <input type="hidden" name="totalAmount" value="${payment.totalAmount}" />
+        <button class="btn btn-primary" style="display:table;" type="submit">Завершити платіж</button>
+    </form:form>
+    </c:if>
 </div>
 
 </body>
 </html>
 
-<style type="text/css">
-.custom-centered{
- margin:0 auto;
- width:300px;
-}
-
-.document {
-  padding-top: 30px;
-  padding-bottom: 30px;
-  background-color: white;
-  margin: 0 25%;
-}
-
-#itemList tbody tr:hover {
-    cursor:pointer;
-    background-color: grey;
-}
-</style>

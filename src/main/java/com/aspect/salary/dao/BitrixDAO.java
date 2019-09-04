@@ -26,7 +26,7 @@ public class BitrixDAO {
     private static final int BITRIX_USER_DATA_TYPE = 4;
     private static final int BITRIX_ABSENCE_DATA_TYPE = 7;
     public static final int PAYDAY = 6;
-    public static final int[] FORBIDDEN_USER_ID = {1,4,6,8};
+    public static final int[] FORBIDDEN_USER_ID = {1,4,6,8,60};
 
     private static DriverManagerDataSource getBitrixDataSource() {
 
@@ -93,8 +93,6 @@ public class BitrixDAO {
         @Override
         public void processRow(ResultSet rs) throws SQLException {
             int id = rs.getInt("ID");
-            //String activeFrom = rs.getString("ACTIVE_FROM");
-            //String activeTo = rs.getString("ACTIVE_TO");
             Timestamp creationDate = rs.getTimestamp("CREATION_DATE");
             Timestamp activeFrom = rs.getTimestamp("ACTIVE_FROM");
             Timestamp activeTo = rs.getTimestamp("ACTIVE_TO");
@@ -107,16 +105,15 @@ public class BitrixDAO {
             if (map.containsKey(id)) absence = map.get(id);
             else {
                 absence = new Absence(activeFrom, activeTo, creationDate);
-                map.put(rs.getInt("ID"), absence);
+                map.put(id, absence);
             }
 
             if (dataType == BITRIX_USER_DATA_TYPE && absenceType == null) absence.setBitrixUserId(dataValue);
             if (dataType == BITRIX_ABSENCE_DATA_TYPE && absenceType != null) absence.setAbsenceType(absenceType);
 
+
         }
     }
-
-
 
     private static class EmployeeRowCallbackHandler implements RowCallbackHandler{
         List<Employee> employeeList;

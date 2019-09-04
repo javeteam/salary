@@ -1,19 +1,34 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<html>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+
+<html xmlns:form="http://www.w3.org/1999/html">
 <head>
-    <title>Sign in</title>
+    <title>Підтвердіть платіж</title>
     <jsp:include page="assets.jsp"/>
+    <script type="text/javascript">
+        function hideIfChecked(id) {
+          var x = document.getElementById(id);
+          if (x.style.display === "none") {
+              x.style.display = "block";
+          } else {
+              x.style.display = "none";
+          }
+      }
+    </script>
+
 </head>
 <body class="bg-light">
 <div class="document">
 
     <c:choose>
-        <c:when test="${invoice.getAbsenceIntersection().size() == 0 }">
-            <c:set var="varclass" value="thead-dark"/>
+        <c:when test="${invoice.getNotes().length() > 0}">
+            <c:set var="checkboxValue" value=""/>
+            <c:set var="styleVar" value="display:block"/>
         </c:when>
         <c:otherwise>
-            <c:set var="varclass" value="bg-danger"/>
+            <c:set var="checkboxValue" value="checked"/>
+            <c:set var="styleVar" value="display:none"/>
         </c:otherwise>
     </c:choose>
 
@@ -41,10 +56,19 @@
                 <td colspan="3">${invoice.getFormattedCurrency(invoice.getBonus())}</td>
             </tr>
             <tr>
+                <td><b>Бонус за управління</b></td>
+                <td colspan="3">${invoice.getFormattedCurrency(invoice.getManagementBonus())}</td>
+            </tr>
+            <tr>
                 <td><b>Зарплата на картку</b></td>
                 <td colspan="3">${invoice.getFormattedCurrency(invoice.getPaymentToCard())}</td>
             </tr>
-
+            <!--
+            <tr>
+                <td><b>Кількість невідгуляних днів відпустки</b></td>
+                <td colspan="3">${invoice.getVacationDaysLeft()}</td>
+            </tr>
+            -->
             <c:forEach  items="${invoice.getAbsenceIntersection()}" var ="intersections">
                 <tr class="bg-danger">
                     <td>
@@ -144,6 +168,55 @@
                     <td><b>${invoice.getFormattedCurrency(invoice.getWeightedOvertimeAndUnpaidLeavePrise())}</b></td>
                 </tr>
             </c:if>
+
+            <c:if test="${not empty invoice.getFreelance()}">
+                <tr class="table-primary">
+                    <td colspan="4">Робота на фрілансі (тариф ${invoice.getFormattedCurrency(invoice.getFreelanceHourPrise())} грн/год)</td>
+                </tr>
+                <tr class="table-light">
+                    <td></td>
+                    <td><b>Період</b></td>
+                    <td><b>Тривалість, днів</b></td>
+                    <td><b>Вартість, грн</b></td>
+                </tr>
+                <c:forEach  items="${invoice.getFreelance()}" var ="freelance">
+                    <tr>
+                        <td></td>
+                        <td>${freelance.getDatesAsString()}</td>
+                        <td>${freelance.getDuration()}</td>
+                        <td>${invoice.getFormattedCurrency(invoice.getAbsencePrise(freelance))}</td>
+                    </tr>
+                </c:forEach>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td><b>${invoice.getAbsenceGroupDuration(invoice.getFreelance())}</b></td>
+                    <td><b>${invoice.getFormattedCurrency(invoice.getAbsenceGroupPrise(invoice.getFreelance()))}</b></td>
+                </tr>
+            </c:if>
+
+            <c:if test="${not empty invoice.getItems()}">
+                <tr class="table-primary">
+                    <td colspan="4">Додаткові нарахування та утримання</td>
+                </tr>
+                <tr class="table-light">
+                    <td></td>
+                    <td colspan="2"><b>Опис</b></td>
+                    <td><b>Вартість, грн</b></td>
+                </tr>
+                <c:forEach var="invoiceItem" items="${invoice.getItems()}">
+                    <tr>
+                        <td></td>
+                        <td colspan="2">${invoiceItem.getDescription()}</td>
+                        <td>${invoiceItem.getPrise()}</td>
+                    </tr>
+                </c:forEach>
+                <tr>
+                    <td colspan="3"></td>
+                    <td><strong>${invoice.getAdditionalItemsPrise()}</strong></td>
+                </tr>
+            </c:if>
+
             <tr class="bg-warning">
                 <td></td>
                 <td></td>
@@ -152,11 +225,19 @@
             </tr>
         </tbody>
     </table>
+    <c:if test="${not invoice.isConfirmed()}">
     <hr>
-
-    <form method="POST" action="/invoiceConfirm?uuid=${invoice.getUuid()}" class="custom-centered">
-        <button class="btn btn-primary" type="submit">Підтвердити</button>
-    </form>
+        <form:form action="/invoiceStatusUpdate" method="POST" modelAttribute="invoice" style="margin:20px;">
+            <form:hidden path="uuid" />
+            <div class="form-group">
+                <form:checkbox path="confirmed" onchange="hideIfChecked('comment')" value="Платіж підтверджений" checked="${checkboxValue}"/><strong> Я підтверджую, що всі наведені дані вірні</strong>
+            </div>
+            <div class="form-group" id="comment" style="${styleVar}">
+                <form:textarea class="form-control" path="notes" rows="3" placeholder="Перелічіть всі виявлені неточності"/>
+            </div>
+            <button class="btn btn-primary custom-centered" style="display:table;" type="submit">Зберегти зміни</button>
+        </form:form>
+    </c:if>
 </div>
 
 
@@ -170,7 +251,10 @@
 }
 
 .document {
-  padding-top: 10px;
+  padding-top: 20px;
+  padding-bottom: 20px;
+  padding-left: 20px;
+  padding-right: 20px;
   background-color: white;
   margin: 0 25%;
 }

@@ -1,7 +1,9 @@
 <%@ page contentType="text/html;charset=UTF-8" %>
-<html>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+
+<html xmlns:form="http://www.w3.org/1999/html">
     <head>
-        <title>Sign in</title>
+        <title>Вхід</title>
         <jsp:include page="assets.jsp"/>
     </head>
     <body>

@@ -118,6 +118,13 @@ public class EmployeeAbsenceHandler {
         return false;
     }
 
+    private boolean isInLastMonth (LocalDate date){
+        LocalDate lastMonthFirstDay = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        LocalDate currentMonthFirstDay = LocalDate.now().withDayOfMonth(1);
+
+        return (date.isAfter(lastMonthFirstDay) || date.isEqual(lastMonthFirstDay)) && date.isBefore(currentMonthFirstDay);
+    }
+
     private boolean isBetweenCurrentAndNextPayDay(LocalDate date){
         LocalDate currentPayDate = getPayDate(LocalDate.now());
         LocalDate nextPayDate = getPayDate(LocalDate.now().plusMonths(1));
@@ -267,7 +274,7 @@ public class EmployeeAbsenceHandler {
 
             /**
              * If the start date of the vacation is later than payday this month and less or equal to the payday of the next month. That vacation should be paid this time.
-             * If the start date of the vacation is later than payday of previous month and before or equal to the payday this month, it means that it has already been paid and the money should be deducted (except weekends).
+             * If the start date of the vacation is later or equal to the first day of previous month and before first this month, it means that it has already been paid and the money should be deducted (except weekends).
              * But if the creation date of the entry in the calendar is later or equals to 1st day of the last month, this vacation was not paid and therefore we should pay only for weekends during this vacation.
              */
 
@@ -277,7 +284,7 @@ public class EmployeeAbsenceHandler {
                     if(isBetweenCurrentAndNextPayDay(dateFrom.toLocalDate())){
                         absence.setWeight(Weight.POSITIVE);
                         absence.setDurationDays(durationInDays);
-                    } else if (isBetweenLastAndCurrentPayDay(dateFrom.toLocalDate())){
+                    } else if (isInLastMonth(dateFrom.toLocalDate())){
                         if(creationDate.toLocalDate().isBefore(LocalDate.now().minusMonths(1).withDayOfMonth(1))){
                             absence.setWeight(Weight.NEGATIVE);
                             absence.setDurationDays(durationInDays - weekendsAmount);
@@ -296,8 +303,8 @@ public class EmployeeAbsenceHandler {
                     float lunchIntersectionTime = getDurationOfIntersection(absence.getDateFrom().toLocalTime(), absence.getDateTo().toLocalTime(),lunchStart,lunchEnd);
                     durationValue = roundValue((durationInHours - lunchIntersectionTime),2);
                     absence.setDurationHours(durationValue);
-                    // If employee is Project manager and
-                    if(position.equals(Position.PM) && absence.getDuration() < workingDayDuration){
+                    // If employee is Project manager or Vendor manager skip not whole day unpaid leaves
+                    if((position.equals(Position.PM) || position.equals(Position.VM)) && absence.getDuration() < workingDayDuration){
                         absence.setWeight(Weight.NEUTRAL);
                     } else absence.setWeight(Weight.NEGATIVE);
                     break;

@@ -75,11 +75,47 @@ public class PaymentDAO extends JdbcDaoSupport {
         }
     }
 
+    public Payment getPaymentByInvoiceUuid (String uuid){
+        String sql = "SELECT payments.id, payments.date, payments.complete, payments.total_amount FROM `invoices` " +
+                "LEFT JOIN payments ON payments.id = invoices.payment_id " +
+                "WHERE invoices.uuid = ?";
+        Object[] params = new Object[] {uuid};
+        try {
+            return this.getJdbcTemplate().queryForObject(sql, params, new PaymentMapper());
+        } catch (EmptyResultDataAccessException e){
+            e.getLocalizedMessage();
+            return null;
+        }
+    }
+
     public List<Payment> getAllPayments(){
         String sql = "SELECT id,date,complete,total_amount FROM `payments` ORDER BY date DESC";
         List<Payment> paymentList = new ArrayList<>();
         this.getJdbcTemplate().query(sql, new PaymentRowCallbackHandler(paymentList));
         return paymentList;
+    }
+
+    public void updatePayment (Payment payment){
+        String sql = "UPDATE `payments` SET date = ?, complete = ?, total_amount = ? WHERE id = ?";
+
+        this.getJdbcTemplate().update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setTimestamp(1, Timestamp.valueOf(payment.getCreationDate()));
+            ps.setString(2, payment.isComplete() ? "Y" : "N");
+            ps.setInt(3, payment.getTotalAmount());
+            ps.setInt(4, payment.getId());
+            return ps;
+        });
+    }
+
+    public void deletePaymentById(int id){
+        String sql = "DELETE FROM payments WHERE payments.id = ?";
+
+        this.getJdbcTemplate().update(connection -> {
+            PreparedStatement ps = connection.prepareStatement(sql);
+            ps.setInt(1,id);
+            return ps;
+        });
     }
 
     private static class PaymentRowCallbackHandler implements RowCallbackHandler{

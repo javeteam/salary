@@ -39,6 +39,10 @@ public class Payment {
         return creationDate;
     }
 
+    public void setCreationDate(LocalDateTime creationDate) {
+        this.creationDate = creationDate;
+    }
+
     public boolean isComplete() {
         return complete;
     }

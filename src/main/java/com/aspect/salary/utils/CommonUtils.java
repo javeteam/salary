@@ -48,5 +48,6 @@ public class CommonUtils {
     public static DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
     public static DateTimeFormatter dateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy (HH:mm");
     public static DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm)");
+    public static DateTimeFormatter jDateTimeFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm");
 
 }

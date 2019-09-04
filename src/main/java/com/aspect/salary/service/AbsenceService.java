@@ -22,4 +22,11 @@ public class AbsenceService {
     public List<Absence> getAbsencesByInvoiceId(int invoiceId){
         return this.absenceDAO.getAbsencesByInvoiceId(invoiceId);
     }
+
+    public void updateAbsenceList(List<Absence> absenceList, int invoiceId){
+        this.absenceDAO.deleteAbsencesByInvoiceId(invoiceId);
+        for(Absence absence : absenceList){
+            this.absenceDAO.addAbsence(absence, invoiceId);
+        }
+    }
 }

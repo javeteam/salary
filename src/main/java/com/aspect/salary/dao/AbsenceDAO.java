@@ -66,6 +66,13 @@ public class AbsenceDAO extends JdbcDaoSupport {
         return absenceList;
     }
 
+    public void deleteAbsencesByInvoiceId(int invoiceId){
+        String sql = "DELETE FROM `absences` WHERE invoice_id = ?";
+        Object[] params = new Object[] {invoiceId};
+
+        this.getJdbcTemplate().update(sql, params);
+    }
+
     private class AbsenceRowCallbackHandler implements RowCallbackHandler{
         List<Absence> absenceList;
 
@@ -78,7 +85,7 @@ public class AbsenceDAO extends JdbcDaoSupport {
             int id = rs.getInt("id");
             Timestamp creationDate = rs.getTimestamp("creation_date");
             Timestamp dateFrom = rs.getTimestamp("date_from");
-            Timestamp dateTo = rs.getTimestamp("creation_date");
+            Timestamp dateTo = rs.getTimestamp("date_to");
             String absenceType = rs.getString("type");
             int durationDays = rs.getInt("duration_days");
             float durationHours = rs.getFloat("duration_hours");
