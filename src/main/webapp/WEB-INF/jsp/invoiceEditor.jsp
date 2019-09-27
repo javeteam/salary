@@ -61,16 +61,13 @@ var index = "${invoice.getItems().size()}"
             <c:set var="varclass" value="bg-danger"/>
         </c:otherwise>
     </c:choose>
-
-    <div style="width:100%; display: flex; justify-content:flex-end">
-        <!--<button class="btn btn-primary btn-sm"> <a href="/invoice?uuid=${invoice.getUuid()}&absencesUpdated=true">Синхронізувати з Бітрікс</a></button>-->
-        <form:form action="/invoice?uuid=${invoice.getUuid()}&absencesUpdated=true" method="POST">
-            <!--<input type="hidden" class="form-control-sm" style="width:100%" name="employeeId" value="${invoice.employeeId}" />
-            <input type="hidden" class="form-control-sm" style="width:100%" name="uuid" value="${invoice.uuid}" /> -->
-            <button class="btn btn-primary btn-sm" type="submit">Синхронізувати з Бітрікс</button>
-        </form:form>
-
-    </div>
+    <c:if test="${paymentIncomplete}">
+        <div style="width:100%; display: flex; justify-content:flex-end">
+            <form:form action="/invoice?uuid=${invoice.getUuid()}&absencesUpdated=true" method="POST">
+                <button class="btn btn-primary btn-sm" type="submit">Синхронізувати з Бітрікс</button>
+            </form:form>
+        </div>
+    </c:if>
 
 
     <form:form id="invoiceForm" action="/invoiceUpdate" method="POST" modelAttribute="invoice" style="margin:20px;">
@@ -119,7 +116,7 @@ var index = "${invoice.getItems().size()}"
                 <tr>
                     <td><b>Кількість невикористаних днів відпустки</b></td>
                     <td colspan="3">
-                        <input type="text" class="form-control-sm" style="width:100%" name="vacationDaysLeft" value="${invoice.vacationDaysLeft}" />
+                        ${invoice.getVacationDaysLeft()}
                     </td>
                 </tr>
                 <c:if test="${invoice.getNotes().length() > 0}">
@@ -289,10 +286,9 @@ var index = "${invoice.getItems().size()}"
                     <td colspan="4" style="padding-top: 20px;">
                         <div style="text-align:center;">
                             <button class="btn btn-primary custom-centered" onclick="javascript:history.back()" type="button">Назад</button>
-                            <button class="btn btn-primary custom-centered" type="submit">Зберегти зміни</button>
-                            <!--<c:if test="{paymentIncomplete}">
+                            <c:if test="${paymentIncomplete}">
                                 <button class="btn btn-primary custom-centered" type="submit">Зберегти зміни</button>
-                            </c:if> -->
+                            </c:if>
                         </div>
                     </td>
                 </tr>

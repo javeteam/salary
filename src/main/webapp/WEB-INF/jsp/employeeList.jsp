@@ -32,6 +32,18 @@
                 id.submit();
             }
         }
+
+        $(function() {
+            $('#toggle1').change(function() {
+            var url = new URL(window.location.href.toString());
+            var query_string = url.search;
+            var search_params = new URLSearchParams(query_string);
+            search_params.set('showActiveOnly', !$('#toggle1').prop('checked'));
+            url.search = search_params.toString();
+            var new_url = url.toString();
+            window.location.replace(new_url);
+            })
+        })
     </script>
 </head>
 <body class="bg-light">
@@ -45,7 +57,23 @@
     </c:forEach>
 </c:if>
 
+<c:choose>
+    <c:when test="${showActiveOnly}">
+        <c:set var="checkboxValue" value=""/>
+    </c:when>
+    <c:otherwise>
+        <c:set var="checkboxValue" value="checked"/>
+    </c:otherwise>
+</c:choose>
+
 <div class="document">
+    <div class="checkbox" style="padding-left:20px; padding-bottom:5px">
+        <label>
+            <input id="toggle1" type="checkbox" data-toggle="toggle" data-size="sm" ${checkboxValue}>
+            Показувати неактивних працівників
+        </label>
+    </div>
+
     <c:if test="${not empty employeeList}">
         <table class="table table-sm table-striped table-dark" id="itemList">
             <thead>

@@ -9,7 +9,7 @@ public class EncrytedPasswordUtils {
     }
 
     public static void main(String[] args) {
-        String password = "Tr@nsl@t0r";
+        String password = "Tr@nslat0r";
         String encrytedPassword = encrytePassword(password);
 
         System.out.println("Encryted Password: " + encrytedPassword);

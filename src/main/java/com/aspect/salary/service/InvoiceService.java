@@ -1,10 +1,11 @@
 package com.aspect.salary.service;
 
-import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.dao.InvoiceDAO;
 import com.aspect.salary.entity.*;
 import com.aspect.salary.form.InvoiceForm;
+import com.aspect.salary.utils.CommonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -31,7 +32,14 @@ public class InvoiceService {
     @Autowired
     private EmployeeService employeeService;
 
-    private int VACATION_DAYS_PER_MONTH = 2;
+    @Autowired
+    private BitrixService bitrixService;
+
+    @Autowired
+    private AbsenceHandler absenceHandler;
+
+    @Value("${app.vacationDaysPerMonth}")
+    private int VACATION_DAYS_PER_MONTH;
 
 
     public void saveInvoiceListToDB (List<Invoice> invoiceList, int paymentId){
@@ -57,6 +65,13 @@ public class InvoiceService {
         return invoice;
     }
 
+    public Invoice getLatestInvoiceByEmployeeId (int id){
+        Invoice invoice = invoiceDAO.getLatestRawInvoiceByEmployeeId(id);
+        if (invoice == null) return null;
+        setInvoiceUnits(invoice);
+        return invoice;
+    }
+
     public void updateInvoice(Invoice invoice){
         invoice.setModificationDate(LocalDateTime.now());
         this.invoiceDAO.updateInvoice(invoice);
@@ -77,17 +92,15 @@ public class InvoiceService {
         updateInvoice(invoice);
     }
 
-    public Invoice getBitrixInfo(Employee employee){
-        BitrixDAO bitrixDAO = new BitrixDAO();
-        List <Absence> absenceList = bitrixDAO.getAbsenceList();
-        for(Absence absence : absenceList){
-            if(absence.getBitrixUserId() == employee.getBitrixUserId()){
-                employee.addAbsence(absence);
+    public void synchronizeBitrixInfo(Invoice invoice){
+        List <Absence> csvAbsences = new ArrayList<>();
+        for(Absence absence : invoice.getAbsences()){
+            if(absence.getDateTo() == null && absence.getDateFrom()== null){
+                csvAbsences.add(absence);
             }
         }
-
-        EmployeeService.handleEmployeeAbsences(employee);
-        return new Invoice(employee);
+        this.absenceHandler.addAbsencesToInvoice(invoice);
+        invoice.addAbsences(csvAbsences);
     }
 
     public Boolean isInvoicePaymentCompleted(Invoice invoice){
@@ -117,7 +130,8 @@ public class InvoiceService {
         invoiceForm.setManagementBonus(invoice.getManagementBonus());
         invoiceForm.setUuid(invoice.getUuid());
         invoiceForm.setNotes(invoice.getNotes());
-        invoiceForm.setVacationDaysLeft(invoice.getVacationDaysLeft());
+        //invoiceForm.setVacationDaysLeft(invoice.getVacationDaysLeft());
+        invoiceForm.setVacationDaysLeft(getUpdatedVacationDaysInfo(invoice));
         invoiceForm.setAbsenceIntersection(invoice.getAbsenceIntersection());
         invoiceForm.addAbsences(invoice.getAbsences());
         invoiceForm.setItems(invoice.getItems());
@@ -125,9 +139,22 @@ public class InvoiceService {
         invoiceForm.setOvertimeHourPrise(invoice.getOvertimeHourPrise());
         invoiceForm.setWorkingDayPrise(invoice.getWorkingDayPrise());
 
+        if(isPaidPeriodMatchMonthBorders(invoice)) {
+            invoiceForm.setPaidPeriod(CommonUtils.monthDateFormatter.format(invoice.getPaidFrom()));
+        }
+        else invoiceForm.setPaidPeriod(CommonUtils.dateFormatter.format(invoice.getPaidFrom()) + " - " + CommonUtils.dateFormatter.format(invoice.getPaidUntil()));
+
+
         return invoiceForm;
     }
 
+    private boolean isPaidPeriodMatchMonthBorders(Invoice invoice){
+        LocalDate initial = invoice.getPaidFrom();
+        if(initial.equals(initial.withDayOfMonth(1))){
+            initial = invoice.getPaidUntil();
+            return initial.equals(initial.withDayOfMonth(initial.lengthOfMonth()));
+        } else return false;
+    }
 
     public List<InvoiceForm> getInvoiceFormsByInvoices (List<Invoice> invoiceList){
         List<InvoiceForm> invoiceFormList = new ArrayList<>();
@@ -137,7 +164,6 @@ public class InvoiceService {
 
         return  invoiceFormList;
     }
-
 
     private void setInvoiceUnits (Invoice invoice){
         List <Absence> invoiceAbsences = this.absenceService.getAbsencesByInvoiceId(invoice.getId());

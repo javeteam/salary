@@ -1,11 +1,13 @@
 package com.aspect.salary.utils;
 
+import org.springframework.beans.factory.annotation.Value;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 
 
-public class CommonUtils {
+public final class CommonUtils {
 
     public static float roundValue(float number, int decimalPlaces){
         BigDecimal bd = new BigDecimal(number).setScale(decimalPlaces, RoundingMode.HALF_EVEN);
@@ -28,6 +30,11 @@ public class CommonUtils {
         HR,
         VM,
         Other
+    }
+
+    public enum InvoiceType {
+        REGULAR,
+        DISMISS
     }
 
     public static String currencyFormatter (int value){

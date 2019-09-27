@@ -1,7 +1,6 @@
 package com.aspect.salary.dao;
 
 import com.aspect.salary.entity.Invoice;
-import com.aspect.salary.entity.Payment;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowCallbackHandler;
@@ -15,7 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +29,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
     }
 
     public Integer addInvoice(Invoice invoice, int paymentId){
-        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, payment_to_card, bonus, management_bonus, working_day_duration, vacation_days_left, confirmed, creation_date, modification_date, uuid, notes) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO `invoices` (payment_id, employee_id, salary, payment_to_card, bonus, management_bonus, working_day_duration, vacation_days_left, confirmed, creation_date, modification_date, uuid, notes, paid_from, paid_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
         this.getJdbcTemplate().update(
@@ -49,6 +48,8 @@ public class InvoiceDAO extends JdbcDaoSupport {
                     ps.setTimestamp(11, Timestamp.valueOf(invoice.getModificationDate()));
                     ps.setString(12, invoice.getUuid());
                     ps.setString(13, invoice.getNotes());
+                    ps.setString(14, DateTimeFormatter.ofPattern("yyyy-MM-dd").format(invoice.getPaidFrom()));
+                    ps.setString(15, DateTimeFormatter.ofPattern("yyyy-MM-dd").format(invoice.getPaidUntil()));
                     return ps;
                 }, keyHolder
         );
@@ -59,7 +60,7 @@ public class InvoiceDAO extends JdbcDaoSupport {
 
     public List<Invoice> getRawInvoicesByPaymentId(int paymentId){
         List<Invoice> invoiceList = new ArrayList<>();
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.paid_from, invoices.paid_until, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
                 "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, invoices.notes, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
@@ -72,8 +73,23 @@ public class InvoiceDAO extends JdbcDaoSupport {
         return invoiceList;
     }
 
+    public Invoice getLatestRawInvoiceByEmployeeId(int employeeId){
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.paid_from, invoices.paid_until, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
+                "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, invoices.notes, CONCAT(employees.surname, \" \", employees.name) AS username " +
+                "FROM `invoices` " +
+                "LEFT JOIN employees ON employees.id = invoices.employee_id " +
+                "WHERE employee_id = ? ORDER BY creation_date DESC LIMIT 1";
+        Object[] params = new Object[]{employeeId};
+
+        try {
+            return this.getJdbcTemplate().queryForObject(sql, params, new InvoiceRowMapper());
+        } catch (EmptyResultDataAccessException e){
+            return null;
+        }
+    }
+
     public Invoice getRawInvoiceByUuid(String uuid){
-        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
+        String sql = "SELECT invoices.id, invoices.employee_id, invoices.salary, invoices.paid_from, invoices.paid_until, invoices.payment_to_card, invoices.bonus, invoices.management_bonus, invoices.working_day_duration, invoices.vacation_days_left, " +
                 "invoices.confirmed, invoices.creation_date, invoices.modification_date, invoices.uuid, invoices.notes, CONCAT(employees.surname, \" \", employees.name) AS username " +
                 "FROM `invoices` " +
                 "LEFT JOIN employees ON employees.id = invoices.employee_id " +
@@ -157,6 +173,8 @@ public class InvoiceDAO extends JdbcDaoSupport {
         invoice.setUuid(rs.getString("uuid"));
         invoice.setUsername(rs.getString("username"));
         invoice.setNotes(rs.getString("notes"));
+        invoice.setPaidFrom(LocalDate.parse(rs.getString("paid_from"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+        invoice.setPaidUntil(LocalDate.parse(rs.getString("paid_until"), DateTimeFormatter.ofPattern("yyyy-MM-dd")));
 
         return  invoice;
     }

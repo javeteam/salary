@@ -90,6 +90,13 @@
         <button class="btn btn-primary" style="display:table;" type="submit">Завершити платіж</button>
     </form:form>
     </c:if>
+    <c:if test="${!payment.isNotificationSent()}">
+        <form:form action="/sendNotification" class="custom-centered" method="POST" modelAttribute="payment">
+            <input type="hidden" name="id" value="${payment.id}" />
+            <button class="btn btn-primary" style="display:table;" type="submit">Відправити посилання користувачам</button>
+        </form:form>
+    </c:if>
+
 </div>
 
 </body>

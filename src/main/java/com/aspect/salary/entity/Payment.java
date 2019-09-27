@@ -12,7 +12,8 @@ public class Payment {
     private Integer id;
     private LocalDateTime creationDate;
     private boolean complete;
-    private int TotalAmount;
+    private int totalAmount;
+    private boolean notificationSent;
     private List<Invoice> invoices = new ArrayList<>();
 
     public Payment() {
@@ -24,7 +25,7 @@ public class Payment {
         this.id = id;
         this.creationDate = creationDate;
         this.complete = complete;
-        this.TotalAmount = TotalAmount;
+        this.totalAmount = TotalAmount;
     }
 
     public Integer getId() {
@@ -51,16 +52,24 @@ public class Payment {
         this.complete = complete;
     }
 
+    public boolean isNotificationSent() {
+        return notificationSent;
+    }
+
+    public void setNotificationSent(boolean notificationSent) {
+        this.notificationSent = notificationSent;
+    }
+
     public int getTotalAmount() {
-        return TotalAmount;
+        return totalAmount;
     }
 
     public String getFormattedTotalAmount() {
-        return currencyFormatter(TotalAmount);
+        return currencyFormatter(totalAmount);
     }
 
     public void setTotalAmount(int totalAmount) {
-        this.TotalAmount = totalAmount;
+        this.totalAmount = totalAmount;
     }
 
     public List<Invoice> getInvoices() {

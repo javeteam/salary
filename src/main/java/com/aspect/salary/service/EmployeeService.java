@@ -5,6 +5,7 @@ import com.aspect.salary.entity.*;
 import com.aspect.salary.form.EmployeeForm;
 import com.aspect.salary.utils.EmployeeAbsenceHandler;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -12,16 +13,32 @@ import java.util.*;
 @Service
 public class EmployeeService {
 
+    @Value("${bitrix.forbiddenUserId}")
+    private int[] FORBIDDEN_USER_ID;
+
     @Autowired
     private EmployeeDAO employeeDAO;
 
     @Autowired
     private InvoiceService invoiceService;
 
+    @Autowired
+    private BitrixService bitrixService;
 
-    public List<Employee> getEmployeeList(List<Absence> bitrixAbsenceList,  Session session) {
+
+
+    /*
+    public List<Employee> getEmployeeListForLastMonthInvoice(Session session) {
         List<CSVAbsence> csvAbsenceList = session.getCsvAbsenceList();
-        Map<Integer, Employee>  employeeMap = this.employeeDAO.getRawEmployeeMap();
+        List<Employee> employeeList = this.employeeDAO.getAllRawEmployeeList(true);
+        LocalDate initial = LocalDate.now().minusMonths(1);
+
+        // Get absences for each employee in list
+        for (Employee employee: employeeList){
+            int bitrixUserId = employee.getBitrixUserId();
+            employee.setAbsences(this.bitrixService.getBitrixAbsences(initial, bitrixUserId));
+        }
+
 
         //Puts all Bitrix absences into Employee objects which they connected with
         for (Absence absence: bitrixAbsenceList){
@@ -34,6 +51,7 @@ public class EmployeeService {
 
         List <Employee> employeeList = new ArrayList<>(employeeMap.values());
 
+
         // Handle absences for each Employee
         for(Employee employee : employeeList){
             handleEmployeeAbsences(employee);
@@ -42,15 +60,11 @@ public class EmployeeService {
         }
         return employeeList;
     }
-
-    public List<Employee> getRawEmployeeList(){
-        List<Employee> employeeList = new ArrayList<>(this.employeeDAO.getRawEmployeeMap().values());
-        employeeList.sort(Comparator.comparing(Employee::getSurname));
-        return employeeList;
-    }
+    */
 
     public List<String> printMissingUsers (){
-        List<Employee> missingEmployees = this.employeeDAO.getMissingUsers();
+
+        List <Employee> missingEmployees = this.getMissingEmployees();
         List <String> missingEmployeesInfo = new ArrayList<>();
         for(Employee employee : missingEmployees){
             String employeeInfo = employee.getName() + " " + employee.getSurname() + " { bitrix_id: " + employee.getBitrixUserId() + " }";
@@ -59,9 +73,36 @@ public class EmployeeService {
         return missingEmployeesInfo;
     }
 
+    public List<Employee> getMissingEmployees(){
+        List <Employee> bitrixUserList = this.bitrixService.getBitrixUserList();
+        List<Employee> missingUserList = new ArrayList<>();
+        Map<Integer, Employee> employeeMap = this.employeeDAO.getRawEmployeeMap();
 
-    public List<Employee> getAllEmployeeList(){
-        return this.employeeDAO.getAllRawEmployeeList();
+        if(bitrixUserList == null || employeeMap == null) return null;
+
+        for(Employee employee: bitrixUserList){
+            int bitrixUserId = employee.getBitrixUserId();
+            if(!employeeMap.containsKey(bitrixUserId)){
+                if (idNotForbidden(bitrixUserId)){
+                    missingUserList.add(employee);
+                }
+            }
+        }
+        return missingUserList;
+    }
+
+    private boolean idNotForbidden (int id){
+        for(int forbiddenId : FORBIDDEN_USER_ID){
+            if (id == forbiddenId) return false;
+        }
+        return true;
+    }
+
+
+    public List<Employee> getAllEmployees(boolean activeOnly){
+        List<Employee> employeeList = this.employeeDAO.getAllRawEmployeeList( activeOnly);
+        employeeList.sort(Comparator.comparing(Employee::getSurname));
+        return employeeList;
     }
 
     public Employee getEmployeeById(int id){
@@ -79,6 +120,7 @@ public class EmployeeService {
         } else this.employeeDAO.updateEmployee(employee);
     }
 
+    /*
     public static void handleEmployeeAbsences(Employee employee){
         EmployeeAbsenceHandler handler = new EmployeeAbsenceHandler(employee);
         handler.removeInappropriateItems();
@@ -87,6 +129,7 @@ public class EmployeeService {
         handler.checkForIntersection();
         handler.prepareInvoiceData();
     }
+    */
 
     public EmployeeForm employeeFormByEmployee (Employee employee){
         EmployeeForm employeeForm = new EmployeeForm();
@@ -159,6 +202,7 @@ public class EmployeeService {
         }
     }
 
+    /*
     private static void addCSVAbsencesToEmployee (Employee employee, List<CSVAbsence> csvAbsenceList){
         String xtrfUsername = employee.getXtrfName();
         for(CSVAbsence csvAbsence : csvAbsenceList) {
@@ -178,6 +222,7 @@ public class EmployeeService {
             }
         }
     }
+    */
 
 
 }

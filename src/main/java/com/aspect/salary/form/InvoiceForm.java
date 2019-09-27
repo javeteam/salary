@@ -30,6 +30,7 @@ public class InvoiceForm {
     private int freelanceHourPrise;
     private int workingDayPrise;
     private int overtimeHourPrise;
+    private String paidPeriod;
     private List<List<Absence>> absenceIntersection;
     private List<Absence> vacation = new ArrayList<>();
     private List<Absence> overtime = new ArrayList<>();
@@ -230,6 +231,14 @@ public class InvoiceForm {
         this.overtimeHourPrise = overtimeHourPrise;
     }
 
+    public String getPaidPeriod() {
+        return paidPeriod;
+    }
+
+    public void setPaidPeriod(String paidPeriod) {
+        this.paidPeriod = paidPeriod;
+    }
+
     public void addAbsences(List<Absence> absenceList){
         for (Absence absence : absenceList){
             switch (absence.getAbsenceType()){
@@ -268,9 +277,6 @@ public class InvoiceForm {
                 return "Години за свій кошт";
             default: return absence.getAbsenceType();
         }
-    }
-    public String getPaidPeriod() {
-        return this.creationDate.minusMonths(1).toLocalDate().format(monthDateFormatter);
     }
 
     public float getAbsenceGroupDuration (List<Absence> absenceList){

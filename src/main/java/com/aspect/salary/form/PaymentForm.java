@@ -11,6 +11,7 @@ public class PaymentForm {
     private Integer id;
     private LocalDateTime creationDate;
     private boolean complete;
+    private boolean notificationSent;
     private int totalAmount;
 
     public Integer getId() {
@@ -35,6 +36,14 @@ public class PaymentForm {
 
     public void setComplete(boolean complete) {
         this.complete = complete;
+    }
+
+    public boolean isNotificationSent() {
+        return notificationSent;
+    }
+
+    public void setNotificationSent(boolean notificationSent) {
+        this.notificationSent = notificationSent;
     }
 
     public int getTotalAmount() {

@@ -5,32 +5,28 @@ import com.aspect.salary.form.EmployeeForm;
 import com.aspect.salary.form.InvoiceForm;
 import com.aspect.salary.form.PaymentForm;
 import com.aspect.salary.service.*;
-import com.aspect.salary.utils.EmployeeAbsenceHandler;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 @Controller
 public class MainController {
     private static Payment payment;
-    private boolean paymentExist;
-    private List <String> missingEmployees;
     private Session session = new Session();
-    private String paymentDate;
 
     @Autowired
     private EmployeeService employeeService;
@@ -41,14 +37,31 @@ public class MainController {
     @Autowired
     private InvoiceService invoiceService;
 
+    @Autowired
+    private BitrixService bitrixService;
+
+    @Value("${app.baseUrl}")
+    private String BASE_URL;
+
+    private void setCommonAttributes (Model model){
+        List <String> missingEmployees = employeeService.printMissingUsers();
+        boolean paymentExist = paymentService.isPaymentForLastMonthExist();
+
+        model.addAttribute("missingEmployees", missingEmployees);
+        model.addAttribute("paymentExist", paymentExist);
+    }
+
+    private LocalDate getPaymentDate (Invoice invoice) {
+        return invoice.getPaidUntil().isBefore(invoice.getPaidUntil().withDayOfMonth(invoice.getPaidUntil().lengthOfMonth()))
+                ? invoice.getPaidUntil()
+                : this.paymentService.getPaymentDate(YearMonth.from(invoice.getPaidFrom().plusMonths(1)));
+    }
+
+
     @RequestMapping(value = {"/welcome"}, method = RequestMethod.GET)
     public String welcome(Model model) {
         session = new Session();
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-
-        List <String> missingEmployees = employeeService.printMissingUsers();
-        model.addAttribute("missingEmployees", missingEmployees);
-        model.addAttribute("paymentExist", paymentExist);
+        setCommonAttributes(model);
 
         return "welcome";
     }
@@ -69,14 +82,14 @@ public class MainController {
     }
 
     @RequestMapping(value = { "/employeeList" }, method = RequestMethod.GET)
-    public String getEmployees(Model model) {
-        List <String> missingEmployees = this.employeeService.printMissingUsers();
-        List<Employee> employeeList = this.employeeService.getAllEmployeeList();
-        employeeList.sort(Comparator.comparing(Employee::getSurname));
-        paymentExist = paymentService.isPaymentForThisMonthExist();
+    public String getEmployees(@RequestParam(value = "showActiveOnly", required = false, defaultValue = "true") String activeOnly, Model model) {
+        setCommonAttributes (model);
 
-        model.addAttribute("paymentExist", paymentExist);
-        model.addAttribute("missingEmployees", missingEmployees);
+        boolean showActiveOnly = activeOnly.equals("true");
+        List<Employee> employeeList = this.employeeService.getAllEmployees(showActiveOnly);
+        employeeList.sort(Comparator.comparing(Employee::getSurname));
+
+        model.addAttribute("showActiveOnly", showActiveOnly);
         model.addAttribute("employeeList", this.employeeService.employeeFormListByEmployeeList(employeeList));
 
         return "employeeList";
@@ -86,39 +99,32 @@ public class MainController {
     @RequestMapping(value = { "/createPayment" })
 
     public String addPayment(Model model, HttpServletResponse httpResponse) throws Exception {
-
-        missingEmployees = employeeService.printMissingUsers();
-        paymentExist = paymentService.isPaymentForThisMonthExist();
-        model.addAttribute("missingEmployees", missingEmployees);
-        model.addAttribute("paymentExist", paymentExist);
-
-        if(session == null){
-            httpResponse.sendRedirect("/welcome");
-            return null;
-        }
+        setCommonAttributes (model);
+        if(session == null) session = new Session();
 
         if(!session.isCsvUploaded()){
             return "csvUpload";
         } else if(!session.isPaymentToCardSpecified()){
-            session.setEmployeeCardPayments(this.employeeService.getRawEmployeeList());
+            session.setEmployeeCardPayments(this.employeeService.getAllEmployees(true));
             model.addAttribute("session", session);
             return "cardPaymentEditor";
         }
 
 
-        payment = this.paymentService.createPayment(session);
+        payment = this.paymentService.createPaymentForLastMonth(session);
         List<Invoice> invoiceList = payment.getInvoices();
         invoiceList.sort(Comparator.comparing(Invoice::getUsername));
         boolean isDataValid = paymentService.isDataValid(payment);
         paymentService.calculateTotalAmount(payment);
         String totalAmount = payment.getFormattedTotalAmount();
         String paidPeriod = payment.getPaidPeriod();
-
-        paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        LocalDate paymentDate = invoiceList.isEmpty()
+                        ? this.paymentService.getPaymentDate( YearMonth.from(LocalDate.now()))
+                        : getPaymentDate(invoiceList.get(0));
 
         model.addAttribute("isDataValid", isDataValid);
         model.addAttribute("invoices", this.invoiceService.getInvoiceFormsByInvoices(invoiceList));
-        model.addAttribute("paymentDate", paymentDate);
+        model.addAttribute("paymentDate", paymentDate.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
         model.addAttribute("paidPeriod", paidPeriod);
         model.addAttribute("totalAmount", totalAmount);
 
@@ -158,11 +164,9 @@ public class MainController {
 
     @RequestMapping(value = { "/paymentList" })
     public String getPaymentList(Model model) {
-        paymentExist = this.paymentService.isPaymentForThisMonthExist();
+        setCommonAttributes (model);
         List<Payment> paymentList = this.paymentService.getAllPayments();
-
         model.addAttribute("paymentList", this.paymentService.getPaymentFormListByPaymentList(paymentList));
-        model.addAttribute("paymentExist", paymentExist);
 
         return "paymentList";
     }
@@ -171,20 +175,11 @@ public class MainController {
     public String getInvoiceList(@RequestParam ("id") int id,  Model model) throws IOException {
         Payment payment = this.paymentService.getPaymentById(id);
         List<InvoiceForm> invoiceFormList = this.invoiceService.getInvoiceFormsByInvoices(payment.getInvoices());
-        paymentExist = this.paymentService.isPaymentForThisMonthExist();
+        setCommonAttributes (model);
 
-        model.addAttribute("paymentExist", paymentExist);
         model.addAttribute("invoiceList", invoiceFormList);
         model.addAttribute("payment", this.paymentService.getPaymentFormByPayment(payment));
         model.addAttribute("allInvoicesConfirmed", this.paymentService.isAllPaymentInvoicesConfirmed(payment));
-
-        for(InvoiceForm invoiceForm : invoiceFormList){
-            //System.out.println(invoiceForm.getUsername() + " http://178.165.87.70:8080/invoiceConfirmation?uuid=" + invoiceForm.getUuid());
-            //System.out.println(invoiceForm.getUsername() + " " + this.employeeService.getEmployee(invoiceForm.getEmployeeId()).getSurname());
-
-            //String url = "http://178.165.87.70:8080/invoiceConfirmation?uuid=" + invoiceForm.getUuid();
-            //BitrixNotification.sendNotification(url, invoiceForm.get);
-        }
 
         return "invoiceList";
     }
@@ -210,44 +205,18 @@ public class MainController {
         Invoice invoice = invoiceService.getInvoiceByUuid(uuid);
 
         if(absencesUpdated.equals("true")){
-            Employee employee = this.employeeService.getEmployeeById(invoice.getEmployeeId());
-            Invoice updatedInvoice = this.invoiceService.getBitrixInfo(employee);
-
-            // Extract CSV Absence data from existing invoice, replace all absences by ones from new invoice and put CSV absence data back
-            List <Absence> csvAbsences = new ArrayList<>();
-            List <Absence> allInvoiceAbsences = invoice.getAbsences();
-
-            for(Absence absence : allInvoiceAbsences){
-                if(absence.getDateTo() == null && absence.getDateFrom()== null){
-                    csvAbsences.add(absence);
-                }
-            }
-
-            invoice.setAbsences(updatedInvoice.getAbsences());
-            invoice.addAbsences(csvAbsences);
+            this.invoiceService.synchronizeBitrixInfo(invoice);
         }
-
-
-
-        /*
-        if (session.isInvoiceEdited() && session.getInvoiceToEdit() != null && session.getInvoiceToEdit().getUuid().equals(uuid)){
-            invoice = session.getInvoiceToEdit();
-            session.setInvoiceEdited(false);
-        } else {
-            invoice = this.invoiceService.getInvoiceByUuid(uuid);
-            session.setInvoiceToEdit(invoice);
-        }
-        */
 
         if(invoice.getItems().size() == 0 ) invoice.addItem(new InvoiceItem());
         boolean isPaymentComplete = this.paymentService.getRawPaymentByInvoiceUuid(uuid).isComplete();
 
-        paymentDate = EmployeeAbsenceHandler.getPayDate(invoice.getCreationDate().toLocalDate()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         session.addInvoice(invoice);
         InvoiceForm invoiceForm = this.invoiceService.getInvoiceFormByInvoice(invoice);
+
         model.addAttribute("paymentIncomplete", !isPaymentComplete);
         model.addAttribute("invoice", invoiceForm);
-        model.addAttribute("paymentDate", paymentDate);
+        model.addAttribute("paymentDate", getPaymentDate(invoice).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
 
         return "invoiceEditor";
     }
@@ -260,9 +229,8 @@ public class MainController {
         if (invoice != null){
             Boolean invoicePaymentConfirmed = this.invoiceService.isInvoicePaymentCompleted(invoice);
             if(!invoicePaymentConfirmed){
-                paymentDate = EmployeeAbsenceHandler.getPayDate(LocalDate.now()).format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
                 model.addAttribute("invoice", invoiceForm);
-                model.addAttribute("paymentDate", paymentDate);
+                model.addAttribute("paymentDate", getPaymentDate(invoice).format(DateTimeFormatter.ofPattern("dd.MM.yyyy")));
 
                 return "invoiceView";
             }
@@ -290,7 +258,6 @@ public class MainController {
         invoice.setSalary(invoiceForm.getSalary());
         invoice.setBonus(invoiceForm.getBonus());
         invoice.setPaymentToCard(invoiceForm.getPaymentToCard());
-        invoice.setVacationDaysLeft(invoiceForm.getVacationDaysLeft());
         invoice.setConfirmed(invoiceForm.isConfirmed());
         invoice.setItems(new ArrayList<>());
 
@@ -332,8 +299,15 @@ public class MainController {
     @RequestMapping(value = { "/dismissEmployee" }, method = RequestMethod.POST)
     public void dismisEmployee(@ModelAttribute("employee") EmployeeForm employeeForm, Model model, HttpServletResponse httpResponse) throws IOException {
         Employee employee = this.employeeService.getEmployeeById(employeeForm.getId());
-        LocalDate date = employeeForm.getDismissDate();
-        System.out.println(employee.getPosition() + " " + date);
+        employee.setDismissDate(employeeForm.getDismissDate());
+        employee.setActive(false);
+
+        //Invoice previousEmploeeInvoice = this.invoiceService.getLatestInvoiceByEmployeeId(employee.getId());
+        //LocalDate initial = previousEmploeeInvoice.getPaidUntil();
+        //List<Absence> absenceList = this.bitrixService.getBitrixAbsences(initial, employee.getBitrixUserId());
+
+
+
     }
 
     @RequestMapping(value = {"/setHolidays"}, method = RequestMethod.GET)
@@ -350,6 +324,36 @@ public class MainController {
         return "holidays";
     }
 
+    @RequestMapping(value = { "/test" })
+    public void test(@RequestParam (value = "id", required = false) Integer id, Model model){
+        Employee employee = this.employeeService.getEmployeeById(id);
+
+        /*
+
+        EmployeeService.handleEmployeeAbsences(employee);
+        List<Absence> updatedAbsences = employee.getAbsences();
+        for (Absence absence : updatedAbsences){
+            System.out.println(absence.getBitrixUserId() + " --" +absence.getDateFrom() + " - " + absence.getDateTo() + " : " + absence.getAbsenceType());
+        }
+        */
+    }
+
+    @RequestMapping(value = { "/sendNotification" }, method = RequestMethod.POST)
+    public void sendNotification(@ModelAttribute("payment") PaymentForm paymentForm, Model model, HttpServletResponse httpResponse) throws IOException {
+        Payment payment = this.paymentService.getPaymentById(paymentForm.getId());
+
+        for (Invoice invoice : payment.getInvoices()) {
+            String url = this.BASE_URL + "invoiceConfirmation?uuid=" + invoice.getUuid();
+            int bitrixUserId = employeeService.getEmployeeById(invoice.getEmployeeId()).getBitrixUserId();
+            this.bitrixService.sendNotificationToUser(url, bitrixUserId);
+            System.out.println(bitrixUserId);
+        }
+
+        payment.setNotificationSent(true);
+        this.paymentService.updatePayment(payment);
+        httpResponse.sendRedirect("/payment?id=" + payment.getId());
+
+    }
 
 
 }

@@ -20,6 +20,10 @@ import static java.time.temporal.TemporalAdjusters.lastDayOfMonth;
 
 public class EmployeeAbsenceHandler {
 
+
+    // This value already in properties file.
+    private static int PAYDAY = 6;
+
     private List<Absence> absencesList;
     private List<List<Absence>> intersectionsList;
 
@@ -37,8 +41,8 @@ public class EmployeeAbsenceHandler {
 
     public EmployeeAbsenceHandler(Employee employee){
         if(employee == null) throw new IllegalArgumentException("Null id not valid argument");
-        this.absencesList = employee.getAbsences();
-        this.intersectionsList = employee.getIntersectionsList();
+        this.absencesList = new ArrayList<>();
+        this.intersectionsList = new ArrayList<>();
         this.workingDayStart = employee.getWorkingDayStart();
         this.workingDayEnd = employee.getWorkingDayEnd();
         this.lunchStart = employee.getLunchStart();
@@ -91,17 +95,20 @@ public class EmployeeAbsenceHandler {
     }
 
     public static LocalDate getPayDate(LocalDate month){
-        int dayOfWeek = month.withDayOfMonth(BitrixDAO.PAYDAY).getDayOfWeek().getValue();
+        int dayOfWeek = month.withDayOfMonth(PAYDAY).getDayOfWeek().getValue();
         int payDay;
 
-        if (dayOfWeek > 5) payDay = BitrixDAO.PAYDAY - (dayOfWeek - 5);
-        else payDay = BitrixDAO.PAYDAY;
+        if (dayOfWeek > 5) payDay = PAYDAY - (dayOfWeek - 5);
+        else payDay = PAYDAY;
 
         return month.withDayOfMonth(payDay);
     }
 
+
+    // It should be reviewed
     private boolean isBetweenLastAndNextPayDay(LocalDate date){
-        LocalDate lastPayDate = getPayDate(LocalDate.now().minusMonths(1));
+        //LocalDate lastPayDate = getPayDate(LocalDate.now().minusMonths(1));
+        LocalDate lastPayDate = LocalDate.now().minusMonths(1).withDayOfMonth(1);
         LocalDate nextPayDate = getPayDate(LocalDate.now().plusMonths(1));
         if( date.isAfter(lastPayDate) && date.isBefore(nextPayDate.plusDays(1) )){
             return true;
@@ -109,14 +116,6 @@ public class EmployeeAbsenceHandler {
         return false;
     }
 
-    private boolean isBetweenLastAndCurrentPayDay(LocalDate date){
-        LocalDate lastPayDate = getPayDate(LocalDate.now().minusMonths(1));
-        LocalDate currentPayDate = getPayDate(LocalDate.now());
-        if( date.isAfter(lastPayDate) && date.isBefore(currentPayDate.plusDays(1) )){
-            return true;
-        }
-        return false;
-    }
 
     private boolean isInLastMonth (LocalDate date){
         LocalDate lastMonthFirstDay = LocalDate.now().minusMonths(1).withDayOfMonth(1);
@@ -273,7 +272,7 @@ public class EmployeeAbsenceHandler {
             int weekendsAmount = getWeekendsAmount(absence.getDateFrom().toLocalDate(),durationInDays);
 
             /**
-             * If the start date of the vacation is later than payday this month and less or equal to the payday of the next month. That vacation should be paid this time.
+             * If the start date of the vacation is later than PAYDAY this month and less or equal to the PAYDAY of the next month. That vacation should be paid this time.
              * If the start date of the vacation is later or equal to the first day of previous month and before first this month, it means that it has already been paid and the money should be deducted (except weekends).
              * But if the creation date of the entry in the calendar is later or equals to 1st day of the last month, this vacation was not paid and therefore we should pay only for weekends during this vacation.
              */

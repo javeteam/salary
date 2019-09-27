@@ -1,15 +1,16 @@
 package com.aspect.salary.service;
 
-import com.aspect.salary.dao.BitrixDAO;
 import com.aspect.salary.dao.PaymentDAO;
 import com.aspect.salary.entity.*;
 import com.aspect.salary.form.InvoiceForm;
 import com.aspect.salary.form.PaymentForm;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,24 +26,32 @@ public class PaymentService {
     @Autowired
     private EmployeeService employeeService;
 
-    private BitrixDAO bitrixDAO = new BitrixDAO();
+    @Autowired
+    private AbsenceHandler absenceHandler;
+
+    @Value("${app.payday}")
+    private int PAYDAY;
 
 
-    public Payment createPayment(Session session){
+    public Payment createPaymentForLastMonth(Session session){
         Payment payment = new Payment();
-        List<Absence> bitrixAbsenceList = bitrixDAO.getAbsenceList();
-        List<Employee> employeeList = this.employeeService.getEmployeeList(bitrixAbsenceList,session);
+        //List<Employee> employeeList = this.employeeService.getEmployeeListForLastMonthInvoice(session);
+        List<Employee> employeeList = this.employeeService.getAllEmployees(true);
 
         for(Employee employee : employeeList){
             Invoice invoice = new Invoice(employee);
+            this.absenceHandler.addAbsencesToInvoice(invoice);
+            addCSVAbsencesToInvoice(invoice, session.getCsvAbsenceList());
+            modifyCardPaymentInfo(invoice, session);
+            //invoice.setCSVAbsences(session.getCsvAbsenceList());
             payment.addInvoice(invoice);
         }
         return payment;
     }
 
-    public boolean isPaymentForThisMonthExist(){
+    public boolean isPaymentForLastMonthExist(){
         LocalDate currentDate = LocalDate.now();
-        LocalDateTime lastPaymentDate = paymentDAO.getLatestPaymentDate();
+        LocalDateTime lastPaymentDate = this.paymentDAO.getLatestPaymentDate();
 
         if(lastPaymentDate == null) return false;
         else return (lastPaymentDate.getMonthValue() == currentDate.getMonthValue());
@@ -72,7 +81,7 @@ public class PaymentService {
 
     public Payment getPaymentById(int id){
         Payment payment = this.paymentDAO.getRawPaymentById(id);
-        List<Invoice> paymentInvoices = invoiceService.getInvoicesByPaymentId(id);
+        List<Invoice> paymentInvoices = this.invoiceService.getInvoicesByPaymentId(id);
         payment.setInvoices(paymentInvoices);
         return payment;
     }
@@ -95,6 +104,7 @@ public class PaymentService {
         PaymentForm paymentForm = new PaymentForm();
         paymentForm.setId(payment.getId());
         paymentForm.setComplete(payment.isComplete());
+        paymentForm.setNotificationSent(payment.isNotificationSent());
         paymentForm.setCreationDate(payment.getCreationDate());
         paymentForm.setTotalAmount(payment.getTotalAmount());
 
@@ -134,4 +144,41 @@ public class PaymentService {
         this.paymentDAO.updatePayment(payment);
         this.employeeService.updateVacationInfo(payment.getInvoices());
     }
+
+    public void updatePayment(Payment payment){
+        this.paymentDAO.updatePayment(payment);
+    }
+
+    public LocalDate getPaymentDate(YearMonth month){
+        int dayOfWeek = month.atDay(PAYDAY).getDayOfWeek().getValue();
+        int payDay;
+
+        if (dayOfWeek > 5) payDay = PAYDAY - (dayOfWeek - 5);
+        else payDay = PAYDAY;
+
+        return month.atDay(payDay);
+    }
+
+    private void addCSVAbsencesToInvoice (Invoice invoice, List<CSVAbsence> csvAbsenceList){
+        Employee employee = this.employeeService.getEmployeeById(invoice.getEmployeeId());
+        String xtrfUsername = employee.getXtrfName();
+        for(CSVAbsence csvAbsence : csvAbsenceList) {
+            if (csvAbsence.getEmployeeXtrfName().equals(xtrfUsername)) {
+                invoice.addCSVAbsence(csvAbsence);
+            }
+        }
+    }
+
+    private static void modifyCardPaymentInfo(Invoice invoice, Session session){
+        int employeeId = invoice.getEmployeeId();
+        List <Employee> cardPaymentInfo = session.getEmployeeCardPayments();
+        for(Employee employeePaymentInfo : cardPaymentInfo){
+            if (employeePaymentInfo.getId() == employeeId){
+                invoice.setPaymentToCard(employeePaymentInfo.getPaymentToCard());
+                return;
+            }
+        }
+    }
+
+
 }

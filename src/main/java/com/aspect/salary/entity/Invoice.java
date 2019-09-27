@@ -29,6 +29,8 @@ public class Invoice {
     private float workingDayDuration;
     private String notes;
     private int vacationDaysLeft;
+    private LocalDate paidFrom;
+    private LocalDate paidUntil;
     private List<List<Absence>> absenceIntersection;
     private List<Absence> absenceList = new ArrayList<>();
     private List<InvoiceItem> items = new ArrayList<>();
@@ -50,7 +52,6 @@ public class Invoice {
         this.bonus = employee.getBonus();
         this.managementBonus = employee.getManagementBonus();
         this.workingDayDuration = employee.getWorkingDayDuration();
-        this.absenceIntersection = employee.getIntersectionsList();
         this.username = employee.getSurname() + " " + employee.getName();
         this.uuid  = UUID.randomUUID().toString();
         this.vacationDaysLeft = employee.getVacationDaysLeft();
@@ -68,8 +69,7 @@ public class Invoice {
             if (invoiceItem.getPrise() < 0) this.addItem(invoiceItem);
         }
 
-        absenceList.addAll(employee.getAbsences());
-        List<CSVAbsence> csvAbsenceList = employee.getCSVAbsences();
+        /*List<CSVAbsence> csvAbsenceList = employee.getCSVAbsences();
 
         if(csvAbsenceList.size() != 0){
             for(CSVAbsence csvAbsence : csvAbsenceList){
@@ -84,8 +84,28 @@ public class Invoice {
                 absenceList.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Weight.POSITIVE ));
             }
         }
+        */
     }
 
+    public void setCSVAbsences(List<CSVAbsence> csvAbsenceList){
+        if(csvAbsenceList.size() != 0){
+            for(CSVAbsence csvAbsence : csvAbsenceList){
+                addCSVAbsence(csvAbsence);
+            }
+        }
+    }
+
+    public void addCSVAbsence (CSVAbsence csvAbsence){
+        float durationHours = 0;
+
+        if(csvAbsence.getAbsenceType().equals("OVERTIME")) {
+            durationHours = (float)csvAbsence.getPrise() / this.getOvertimeHourPrise();
+        } else if(csvAbsence.getAbsenceType().equals("FREELANCE")){
+            durationHours = (float) csvAbsence.getPrise() / this.getFreelanceHourPrise();
+        }
+        durationHours = roundValue(durationHours,2);
+        this.absenceList.add(new Absence(csvAbsence.getAbsenceType(),durationHours, Weight.POSITIVE ));
+    }
 
 
     public int getEmployeeId() {
@@ -215,6 +235,10 @@ public class Invoice {
         this.notes = notes;
     }
 
+    public void setAbsenceIntersection(List<List<Absence>> absenceIntersection) {
+        this.absenceIntersection = absenceIntersection;
+    }
+
     public List<List<Absence>> getAbsenceIntersection() {
         return absenceIntersection;
     }
@@ -243,4 +267,19 @@ public class Invoice {
         this.items.add(item);
     }
 
+    public LocalDate getPaidFrom() {
+        return paidFrom;
+    }
+
+    public void setPaidFrom(LocalDate paidFrom) {
+        this.paidFrom = paidFrom;
+    }
+
+    public LocalDate getPaidUntil() {
+        return paidUntil;
+    }
+
+    public void setPaidUntil(LocalDate paidUntil) {
+        this.paidUntil = paidUntil;
+    }
 }

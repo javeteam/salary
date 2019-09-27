@@ -55,7 +55,7 @@ public class PaymentDAO extends JdbcDaoSupport {
 
 
     public Integer getIncompletePaymentId (){
-        String sql = "SELECT id,date,complete,total_amount FROM `payments` WHERE complete = 'N'";
+        String sql = "SELECT id, date, complete, notification_sent, total_amount FROM `payments` WHERE complete = 'N'";
         List<Payment> paymentList = new ArrayList<>();
         this.getJdbcTemplate().query(sql, new PaymentRowCallbackHandler(paymentList));
         if (paymentList.size() != 0 ){
@@ -65,7 +65,7 @@ public class PaymentDAO extends JdbcDaoSupport {
     }
 
     public Payment getRawPaymentById(int id){
-        String sql = "SELECT id,date,complete,total_amount FROM `payments` WHERE id = ?";
+        String sql = "SELECT id, date, complete, notification_sent, total_amount FROM `payments` WHERE id = ?";
         Object[] params = new Object[] {id};
         try {
             return this.getJdbcTemplate().queryForObject(sql, params, new PaymentMapper());
@@ -76,7 +76,7 @@ public class PaymentDAO extends JdbcDaoSupport {
     }
 
     public Payment getPaymentByInvoiceUuid (String uuid){
-        String sql = "SELECT payments.id, payments.date, payments.complete, payments.total_amount FROM `invoices` " +
+        String sql = "SELECT payments.id, payments.date, payments.complete, payments.notification_sent, payments.total_amount FROM `invoices` " +
                 "LEFT JOIN payments ON payments.id = invoices.payment_id " +
                 "WHERE invoices.uuid = ?";
         Object[] params = new Object[] {uuid};
@@ -89,21 +89,22 @@ public class PaymentDAO extends JdbcDaoSupport {
     }
 
     public List<Payment> getAllPayments(){
-        String sql = "SELECT id,date,complete,total_amount FROM `payments` ORDER BY date DESC";
+        String sql = "SELECT id,date,complete,notification_sent,total_amount FROM `payments` ORDER BY date DESC";
         List<Payment> paymentList = new ArrayList<>();
         this.getJdbcTemplate().query(sql, new PaymentRowCallbackHandler(paymentList));
         return paymentList;
     }
 
     public void updatePayment (Payment payment){
-        String sql = "UPDATE `payments` SET date = ?, complete = ?, total_amount = ? WHERE id = ?";
+        String sql = "UPDATE `payments` SET date = ?, complete = ?, notification_sent = ?, total_amount = ? WHERE id = ?";
 
         this.getJdbcTemplate().update(connection -> {
             PreparedStatement ps = connection.prepareStatement(sql);
             ps.setTimestamp(1, Timestamp.valueOf(payment.getCreationDate()));
             ps.setString(2, payment.isComplete() ? "Y" : "N");
-            ps.setInt(3, payment.getTotalAmount());
-            ps.setInt(4, payment.getId());
+            ps.setString(3, payment.isNotificationSent() ? "Y" : "N");
+            ps.setInt(4, payment.getTotalAmount());
+            ps.setInt(5, payment.getId());
             return ps;
         });
     }
@@ -126,25 +127,17 @@ public class PaymentDAO extends JdbcDaoSupport {
 
         @Override
         public void processRow(ResultSet rs) throws SQLException {
-            int id = rs.getInt("id");
-            Timestamp creationDate = rs.getTimestamp("date");
-            boolean complete = rs.getString("complete").equals("Y");
-            int TotalAmount = rs.getInt("total_amount");
-            Payment payment = new Payment(id, creationDate.toLocalDateTime(), complete, TotalAmount);
-            paymentList.add(payment);
+            paymentList.add(paymentFromResultSet(rs));
         }
     }
 
     private static class PaymentMapper implements RowMapper<Payment> {
         @Override
         public Payment mapRow(ResultSet rs, int i) throws SQLException {
-            int id = rs.getInt("id");
-            Timestamp creationDate = rs.getTimestamp("date");
-            boolean complete = rs.getString("complete").equals("Y");
-            int TotalAmount = rs.getInt("total_amount");
-            return new Payment(id, creationDate.toLocalDateTime(), complete, TotalAmount);
+             return paymentFromResultSet(rs);
         }
     }
+
     private static class PaymentDateMapper implements RowMapper<LocalDateTime> {
         @Override
         public LocalDateTime mapRow(ResultSet rs, int i) throws SQLException {
@@ -153,5 +146,15 @@ public class PaymentDAO extends JdbcDaoSupport {
             if(creationDate == null) return null;
             else return creationDate.toLocalDateTime();
         }
+    }
+
+    private static Payment paymentFromResultSet (ResultSet rs) throws SQLException{
+        Payment payment = new Payment();
+        payment.setId(rs.getInt("id"));
+        payment.setCreationDate(rs.getTimestamp("date").toLocalDateTime());
+        payment.setComplete(rs.getString("complete").equals("Y"));
+        payment.setNotificationSent(rs.getString("notification_sent").equals("Y"));
+        payment.setTotalAmount(rs.getInt("total_amount"));
+        return payment;
     }
 }

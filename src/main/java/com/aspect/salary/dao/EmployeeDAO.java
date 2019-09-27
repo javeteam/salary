@@ -43,10 +43,12 @@ public class EmployeeDAO extends JdbcDaoSupport {
 
     }
 
-    public List <Employee> getAllRawEmployeeList(){
+    public List <Employee> getAllRawEmployeeList( boolean activeOnly){
+        String condition = activeOnly ? "WHERE active = 'Y' " : " ";
         String sql = "SELECT employees.id, employees.bitrix_user_id, employees.name,employees.surname, employees.xtrf_name, employees.position, employees.email, employees.vacation_days_left, employees.working_day_start, employees.working_day_end, employees.lunch_start, employees.lunch_end, employees.active, employees.hire_date, employees.dismiss_date, employees.final_invoice_uuid, rates.salary,rates.payment_to_card,rates.bonus, rates.management_bonus " +
                 "FROM employees " +
                 "LEFT JOIN rates ON rates.user_id = employees.id " +
+                condition +
                 "ORDER BY employees.surname";
 
         List<Employee> employeeList = new ArrayList<>();
@@ -148,33 +150,6 @@ public class EmployeeDAO extends JdbcDaoSupport {
             return ps;
         });
 
-    }
-
-    public List<Employee> getMissingUsers(){
-        BitrixDAO bitrixDAO = new BitrixDAO();
-        List<Employee> bitrixUserList;
-        List<Employee> missingUserList = new ArrayList<>();
-        Map<Integer, Employee> employeeMap = getRawEmployeeMap();
-        bitrixUserList = bitrixDAO.getBitrixUserList();
-
-        if(bitrixUserList == null || employeeMap == null) return null;
-
-        for(Employee employee: bitrixUserList){
-            int bitrixUserId = employee.getBitrixUserId();
-            if(!employeeMap.containsKey(bitrixUserId)){
-                if (idNotForbidden(bitrixUserId)){
-                    missingUserList.add(employee);
-                }
-            }
-        }
-        return missingUserList;
-    }
-
-    private static boolean idNotForbidden(int id){
-        for (int identifier : BitrixDAO.FORBIDDEN_USER_ID){
-            if (id == identifier) return false;
-        }
-        return true;
     }
 
     private static class EmployeeRowMapper implements RowMapper<Employee>{

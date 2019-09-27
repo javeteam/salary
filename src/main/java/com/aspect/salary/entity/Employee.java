@@ -6,9 +6,6 @@ import static com.aspect.salary.utils.CommonUtils.*;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
-
 import static com.aspect.salary.utils.CommonUtils.roundValue;
 
 public class Employee {
@@ -37,11 +34,6 @@ public class Employee {
     @DateTimeFormat(iso = DateTimeFormat.ISO.TIME)
     private LocalTime workingDayEnd;
     private String finalInvoiceUuid;
-
-    private List<Absence> absences = new ArrayList<>();
-    private List<CSVAbsence> csvAbsences = new ArrayList<>();
-    private List<List<Absence>> intersectionsList = new ArrayList<>();
-
 
     public Employee(){
         this.position = Position.Other;
@@ -127,18 +119,6 @@ public class Employee {
         this.workingDayEnd = workingDayEnd;
     }
 
-    public void addAbsence(Absence absence){
-        this.absences.add(absence);
-    }
-
-    public List<Absence> getAbsences(){
-        return absences;
-    }
-
-    public int getAbsencesAmount(){
-        return absences.size();
-    }
-
     public String getName(){
         return name;
     }
@@ -203,14 +183,6 @@ public class Employee {
         this.dismissDate = dismissDate;
     }
 
-    public List<List<Absence>> getIntersectionsList() {
-        return intersectionsList;
-    }
-
-    public void setIntersectionsList(List<List<Absence>> intersectionsList) {
-        this.intersectionsList = intersectionsList;
-    }
-
     public LocalTime getWorkingDayStart() {
         return workingDayStart;
     }
@@ -246,14 +218,6 @@ public class Employee {
         float lunchEndInSeconds = lunchEnd.toSecondOfDay();
         float rawWorkingDayDurationInSeconds = (workingDayEndInSeconds - workingDayStartInSeconds) - (lunchEndInSeconds - lunchStartInSeconds);
         return roundValue(rawWorkingDayDurationInSeconds / 3600 , 2);
-    }
-
-    public List<CSVAbsence> getCSVAbsences() {
-        return csvAbsences;
-    }
-
-    public void addCSVAbsence(CSVAbsence csvAbsence) {
-        if(csvAbsence != null) this.csvAbsences.add(csvAbsence);
     }
 
 }

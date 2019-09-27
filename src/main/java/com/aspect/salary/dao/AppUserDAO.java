@@ -2,6 +2,7 @@ package com.aspect.salary.dao;
 
 import com.aspect.salary.entity.AppUser;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.JdbcDaoSupport;
@@ -13,7 +14,7 @@ import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-
+//@Qualifier("app_datasource")
 @Repository
 @Transactional
 public class AppUserDAO extends JdbcDaoSupport {
